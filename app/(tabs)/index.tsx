@@ -1,98 +1,200 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import ParallaxScrollView from "@/components/parallax-scroll-view";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
 
 export default function HomeScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
+      headerBackgroundColor={{ light: "#E9EEF6", dark: "#0f172a" }}
       headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+        <LinearGradient
+          colors={["#c7d2fe", "#e0e7ff"]}
+          style={styles.headerGradient}
+        >
+          <Image
+            source={{
+              uri: "https://images.unsplash.com/photo-1521791136064-7986c2920216",
+            }}
+            style={styles.headerImage}
+          />
+        </LinearGradient>
+      }
+    >
+      {/* Greeting Section */}
+      <ThemedView style={styles.greetingContainer}>
+        <View>
+          <ThemedText style={styles.greetingText}>Welcome Back</ThemedText>
+          <ThemedText type="title" style={styles.nameText}>
+            VIVEK nish 👋
+          </ThemedText>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+        <View style={styles.balanceCard}>
+          <ThemedText style={styles.balanceLabel}>Wallet Balance</ThemedText>
+          <ThemedText style={styles.balanceAmount}>₹ 5,250</ThemedText>
+        </View>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
+
+      {/* Quick Actions */}
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Quick Actions
         </ThemedText>
+
+        <View style={styles.actionsRow}>
+          <ActionCard icon="calendar-outline" label="Book Visit" />
+          <ActionCard icon="cart-outline" label="Groceries" />
+          <ActionCard icon="medical-outline" label="Medicines" />
+        </View>
+      </ThemedView>
+
+      {/* Activity Card */}
+      <ThemedView style={styles.section}>
+        <ThemedText type="subtitle" style={styles.sectionTitle}>
+          Today’s Activity
+        </ThemedText>
+
+        <View style={styles.activityCard}>
+          <Image
+            source={{
+              uri: "https://randomuser.me/api/portraits/women/44.jpg",
+            }}
+            style={styles.avatar}
+          />
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.activityName}>Anita Sharma</ThemedText>
+            <ThemedText style={styles.activitySub}>
+              Medicart • 11:00 AM
+            </ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+        </View>
       </ThemedView>
     </ParallaxScrollView>
   );
 }
 
+function ActionCard({ icon, label }: any) {
+  return (
+    <TouchableOpacity style={styles.actionCard}>
+      <Ionicons name={icon} size={24} color="#6366f1" />
+      <ThemedText style={styles.actionLabel}>{label}</ThemedText>
+    </TouchableOpacity>
+  );
+}
+
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  headerGradient: {
+    height: 200,
+    justifyContent: "flex-end",
+    alignItems: "center",
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  headerImage: {
+    height: 120,
+    width: 200,
+    borderRadius: 20,
+    marginBottom: 20,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+
+  greetingContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+
+  greetingText: {
+    fontSize: 14,
+    color: "#64748b",
+  },
+
+  nameText: {
+    fontSize: 26,
+    fontWeight: "700",
+  },
+
+  balanceCard: {
+    backgroundColor: "#6366f1",
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 18,
+    shadowColor: "#6366f1",
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+
+  balanceLabel: {
+    fontSize: 12,
+    color: "#e0e7ff",
+  },
+
+  balanceAmount: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+
+  section: {
+    marginTop: 25,
+  },
+
+  sectionTitle: {
+    marginBottom: 15,
+  },
+
+  actionsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+
+  actionCard: {
+    backgroundColor: "#ffffff",
+    padding: 20,
+    borderRadius: 20,
+    alignItems: "center",
+    width: "30%",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
+  actionLabel: {
+    marginTop: 8,
+    fontSize: 12,
+  },
+
+  activityCard: {
+    backgroundColor: "#ffffff",
+    padding: 16,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+
+  avatar: {
+    width: 45,
+    height: 45,
+    borderRadius: 50,
+    marginRight: 12,
+  },
+
+  activityName: {
+    fontWeight: "600",
+    fontSize: 15,
+  },
+
+  activitySub: {
+    fontSize: 12,
+    color: "#64748b",
   },
 });
