@@ -89,6 +89,7 @@ export default function FamilyProfileScreen() {
   const handleLogout = () => {
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     logout();
+    router.replace('/(auth)/onboarding' as any);
   };
 
   const handleTabPress = (tab: string) => {

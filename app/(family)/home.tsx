@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/authStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +17,9 @@ export default function FamilyHomeScreen() {
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
   const healthRecords = useHealthStore((state) => state.records);
+  const orders = useServiceStore((state) => state.orders);
+
+  const pendingOrder = orders.filter(o => o.status === 'Pending').sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
   const activeTab = pathname.includes('home') ? 'Home' :
     pathname.includes('care') ? 'Care' :
@@ -78,7 +82,9 @@ export default function FamilyHomeScreen() {
             className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
           >
             <Ionicons name="notifications-outline" size={20} color="#1F2937" />
-            <View className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-orange-500 rounded-full border border-white" />
+            {(pendingOrder || orders.length > 0) && (
+              <View className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-orange-500 rounded-full border border-white" />
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push('/(family)/profiles' as any)}
@@ -155,22 +161,38 @@ export default function FamilyHomeScreen() {
             </TouchableOpacity>
           </View>
 
-          <View
-            className="bg-white p-6 rounded-[24px] border border-orange-100/50 shadow-sm flex-row items-center"
-          >
-            <View className="w-12 h-12 bg-emerald-50 rounded-2xl items-center justify-center border border-emerald-100">
-              <Ionicons name="medical" size={24} color="#10B981" />
-            </View>
-            <View className="flex-1 ml-4 pr-4">
-              <View className="flex-row items-center justify-between mb-1">
-                <Text className="text-gray-900 font-bold text-sm">Nurse Booking Secured</Text>
-                <Text className="text-gray-400 text-[8px] font-bold uppercase">Just Now</Text>
+          {pendingOrder ? (
+            <TouchableOpacity
+              onPress={() => router.push({ pathname: '/(family)/account/notifications', params: { filter: 'senior' } } as any)}
+              className="bg-white p-6 rounded-[24px] border-2 border-orange-100 shadow-lg flex-row items-center"
+            >
+              <View style={{ backgroundColor: `${pendingOrder.color}20` }} className="w-12 h-12 rounded-2xl items-center justify-center border border-orange-100">
+                <Ionicons name={pendingOrder.serviceIcon as any} size={24} color={pendingOrder.color} />
               </View>
-              <Text className="text-gray-500 text-[11px] leading-4" numberOfLines={2}>
-                Sister Mary (RN) has been assigned for Post-Op Care for Ramesh. Coordination in progress.
-              </Text>
+              <View className="flex-1 ml-4 pr-4">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-gray-900 font-bold text-sm">New {pendingOrder.serviceTitle} Request</Text>
+                  <Text className="text-orange-500 text-[8px] font-black uppercase">Requires Payment</Text>
+                </View>
+                <Text className="text-gray-500 text-[11px] leading-4" numberOfLines={2}>
+                  {pendingOrder.seniorName} has requested {pendingOrder.serviceTitle}. Tap to authorize payment of ₹{pendingOrder.amount}.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
+            </TouchableOpacity>
+          ) : (
+            <View
+              className="bg-white p-6 rounded-[24px] border border-gray-100 shadow-sm flex-row items-center opacity-60"
+            >
+              <View className="w-12 h-12 bg-gray-50 rounded-2xl border border-gray-100 items-center justify-center">
+                <Ionicons name="notifications-off-outline" size={24} color="#9CA3AF" />
+              </View>
+              <View className="flex-1 ml-4">
+                <Text className="text-gray-400 font-bold text-sm">No new alerts</Text>
+                <Text className="text-gray-400 text-[10px]">Everything is running smoothly.</Text>
+              </View>
             </View>
-          </View>
+          )}
         </Animated.View>
 
         {/* Errands & Task Tracker (Family <-> Pal) */}
