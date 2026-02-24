@@ -1,10 +1,12 @@
 import { useAuthStore } from '@/store/authStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Dimensions, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, FadeInUp, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,6 +20,11 @@ export default function FamilyHomeScreen() {
   const user = useAuthStore((state) => state.user);
   const healthRecords = useHealthStore((state) => state.records);
   const orders = useServiceStore((state) => state.orders);
+  const { unreadCount, fetchNotifications } = useNotificationStore();
+
+  useEffect(() => {
+    fetchNotifications('family');
+  }, []);
 
   const pendingOrder = orders.filter(o => o.status === 'Pending').sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
 
@@ -88,8 +95,10 @@ export default function FamilyHomeScreen() {
             className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
           >
             <Ionicons name="notifications-outline" size={20} color="#1F2937" />
-            {(pendingOrder || orders.length > 0) && (
-              <View className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-orange-500 rounded-full border border-white" />
+            {unreadCount > 0 && (
+              <View className="absolute -top-1 -right-1 bg-orange-500 rounded-full w-5 h-5 items-center justify-center border-2 border-white">
+                <Text className="text-[10px] text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
             )}
           </TouchableOpacity>
           <TouchableOpacity

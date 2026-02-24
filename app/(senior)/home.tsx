@@ -1,9 +1,11 @@
 import { useAuthStore } from '@/store/authStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
+import React, { useEffect } from 'react';
 import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,6 +23,11 @@ export default function SeniorHomeScreen() {
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
     const healthRecords = useHealthStore((state) => state.records);
+    const { unreadCount, fetchNotifications } = useNotificationStore();
+
+    useEffect(() => {
+        fetchNotifications('senior');
+    }, []);
 
     const activeTab = pathname.includes('home') ? 'Home' :
         pathname.includes('services') ? 'Services' :
@@ -62,7 +69,11 @@ export default function SeniorHomeScreen() {
                         className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center border border-indigo-100"
                     >
                         <Ionicons name="notifications-outline" size={20} color={BRAND_PURPLE} />
-                        <View className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-yellow-400 rounded-full border border-white" />
+                        {unreadCount > 0 && (
+                            <View className="absolute -top-1 -right-1 bg-yellow-400 rounded-full w-5 h-5 items-center justify-center border-2 border-white">
+                                <Text className="text-[10px] text-gray-900 font-bold">{unreadCount > 9 ? '9+' : unreadCount}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => router.push('/(senior)/profile' as any)}

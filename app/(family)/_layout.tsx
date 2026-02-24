@@ -74,6 +74,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="account/notification-detail"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
         name="profiles/pal"
         options={{
           href: null,

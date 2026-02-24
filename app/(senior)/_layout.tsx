@@ -68,6 +68,14 @@ export default function SeniorLayout() {
                 name="service-detail"
                 options={{ title: "Service Details", href: null }}
             />
+            <Tabs.Screen
+                name="notifications"
+                options={{ href: null }}
+            />
+            <Tabs.Screen
+                name="notification-detail"
+                options={{ href: null }}
+            />
         </Tabs>
     );
 }
