@@ -1,17 +1,19 @@
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import { StyleSheet, TouchableOpacity } from "react-native";
 
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 
 export default function ModalScreen() {
+  const router = useRouter();
+
   return (
     <ThemedView style={styles.container}>
       <ThemedText type="title">This is a modal</ThemedText>
 
       <TouchableOpacity
         style={styles.link}
-        onPress={() => router.replace("/(senior)/home")}
+        onPress={() => router.replace("/(senior)/home" as any)}
       >
         <ThemedText type="link">Go back to Home</ThemedText>
       </TouchableOpacity>

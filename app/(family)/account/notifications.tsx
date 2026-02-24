@@ -1,3 +1,4 @@
+import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -20,21 +21,11 @@ interface AppNotification {
     senderName?: string;
     hasAction?: boolean;
     isAccepted?: boolean;
+    orderId?: string;
+    status?: string;
 }
 
 const MOCK_NOTIFICATIONS: AppNotification[] = [
-    {
-        id: '0',
-        type: 'senior',
-        title: 'New Grocery Order Placed',
-        message: 'Ramesh Chandra just ordered "Weekly Fruits & Daily Milk" via Pal Delivery. The estimate is ₹450.',
-        time: 'Just now',
-        isRead: false,
-        senderName: 'Ramesh Chandra',
-        senderImage: 'https://i.pravatar.cc/100?u=ramesh',
-        hasAction: true,
-        isAccepted: false
-    },
     {
         id: '1',
         type: 'senior',
@@ -64,73 +55,58 @@ const MOCK_NOTIFICATIONS: AppNotification[] = [
         isRead: false,
         senderName: 'Arjun Singh',
         senderImage: 'https://i.pravatar.cc/100?u=arjun'
-    },
-    {
-        id: '2b',
-        type: 'senior',
-        title: 'House Help Confirmed',
-        message: 'House Help (Deep Cleaning) scheduled for tomorrow. Escrow payment of ₹1200 authorized.',
-        time: '45 mins ago',
-        isRead: true,
-        senderName: 'Ramesh Chandra'
-    },
-    {
-        id: '3',
-        type: 'senior',
-        title: 'Medicine Reminder',
-        message: 'Daily multivitamins reminder sent to Ramesh. He has acknowledged the task.',
-        time: '1 hour ago',
-        isRead: true,
-        senderName: 'Ramesh Chandra'
-    },
-    {
-        id: '4',
-        type: 'pal',
-        title: 'Care Session Completed',
-        message: 'Priya Verma finished the 2-hour exercise session with Ramesh. Review the notes.',
-        time: '3 hours ago',
-        isRead: true,
-        senderName: 'Priya Verma',
-        senderImage: 'https://i.pravatar.cc/100?u=priya'
-    },
-    {
-        id: '5',
-        type: 'system',
-        title: 'Escrow Auto-Refill',
-        message: 'Your wallet has been refilled with ₹2,000 as per your low balance settings.',
-        time: 'Yesterday',
-        isRead: true
     }
 ];
 
 export default function NotificationsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
+    const { orders, updateOrderStatus } = useServiceStore();
     const [filter, setFilter] = useState<NotificationType | 'all'>('all');
-    const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
-    const [selectedDetail, setSelectedDetail] = useState<AppNotification | null>(null);
+    const [mockNotifications, setMockNotifications] = useState(MOCK_NOTIFICATIONS);
+    const [selectedDetail, setSelectedDetail] = useState<any>(null);
 
-    const handleAccept = (id: string) => {
+    const realNotifications: AppNotification[] = orders.map(order => ({
+        id: order.id,
+        orderId: order.id,
+        type: 'senior',
+        title: `Service Request: ${order.serviceTitle}`,
+        message: `${order.seniorName} has requested ${order.serviceTitle}. Status: ${order.status}`,
+        time: new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isRead: false,
+        senderName: order.seniorName,
+        senderImage: 'https://i.pravatar.cc/100?u=ramesh',
+        hasAction: order.status === 'Pending',
+        isAccepted: order.status !== 'Pending',
+        status: order.status
+    }));
+
+    const allNotifications = [...realNotifications, ...mockNotifications];
+
+    const handleAccept = (orderId: string) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setNotifications(notifications.map(n =>
-            n.id === id ? { ...n, isAccepted: true, title: 'Booking Approved ', message: 'The request has been accepted and forwarded to Arjun Singh.' } : n
-        ));
+
+        // Cycle through statuses for demo purposes
+        updateOrderStatus(orderId, 'Paid');
+
+        setTimeout(() => {
+            updateOrderStatus(orderId, 'Confirmed');
+        }, 3000);
+
+        setTimeout(() => {
+            updateOrderStatus(orderId, 'Shipped');
+        }, 8000);
     };
 
     const filteredNotifications = filter === 'all'
-        ? notifications
-        : notifications.filter(n => n.type === filter);
-
-    const markAllRead = () => {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        setNotifications(notifications.map(n => ({ ...n, isRead: true })));
-    };
+        ? allNotifications
+        : allNotifications.filter(n => n.type === filter);
 
     const getTypeColor = (type: NotificationType) => {
         switch (type) {
-            case 'senior': return '#F59E0B'; // Orange for Family/Senior
-            case 'pal': return '#3B82F6';   // Blue for Pals
-            case 'system': return '#10B981'; // Green for System
+            case 'senior': return '#F59E0B';
+            case 'pal': return '#3B82F6';
+            case 'system': return '#10B981';
             default: return '#94A3B8';
         }
     };
@@ -244,13 +220,13 @@ export default function NotificationsScreen() {
                                         <Text className="text-gray-900 font-black text-base mb-1">{notification.title}</Text>
                                         <Text className="text-gray-500 text-xs leading-5 font-medium">{notification.message}</Text>
 
-                                        {notification.hasAction && !notification.isAccepted && (
+                                        {notification.hasAction && (
                                             <View className="mt-4 flex-row gap-x-3">
                                                 <TouchableOpacity
-                                                    onPress={() => handleAccept(notification.id)}
+                                                    onPress={() => handleAccept(notification.orderId || notification.id)}
                                                     className="flex-1 bg-orange-500 py-3 rounded-xl items-center shadow-lg shadow-orange-100"
                                                 >
-                                                    <Text className="text-white font-black text-[10px] uppercase tracking-widest">Accept Booking</Text>
+                                                    <Text className="text-white font-black text-[10px] uppercase tracking-widest">Pay & Confirm</Text>
                                                 </TouchableOpacity>
                                                 <TouchableOpacity
                                                     onPress={() => {
@@ -264,9 +240,21 @@ export default function NotificationsScreen() {
                                             </View>
                                         )}
                                         {notification.isAccepted && (
-                                            <View className="mt-4 bg-emerald-50 p-3 rounded-xl border border-emerald-100 flex-row items-center">
-                                                <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-                                                <Text className="text-emerald-700 text-[10px] font-bold ml-2">Assigned to Arjun (Caretaker) • On-Route</Text>
+                                            <View
+                                                style={{ backgroundColor: notification.status === 'Shipped' ? '#ECFDF5' : '#EFF6FF' }}
+                                                className="mt-4 p-3 rounded-xl border border-blue-100 flex-row items-center"
+                                            >
+                                                <Ionicons
+                                                    name={notification.status === 'Shipped' ? 'checkmark-circle' : 'time'}
+                                                    size={16}
+                                                    color={notification.status === 'Shipped' ? '#10B981' : '#3B82F6'}
+                                                />
+                                                <Text className={`text-[10px] font-bold ml-2 ${notification.status === 'Shipped' ? 'text-emerald-700' : 'text-blue-700'}`}>
+                                                    {notification.status === 'Paid' ? 'Payment Received • Processing' :
+                                                        notification.status === 'Confirmed' ? 'Confirmed • Pal Assigned' :
+                                                            notification.status === 'Shipped' ? 'Order Shipped • En-route' :
+                                                                'Request Accepted'}
+                                                </Text>
                                             </View>
                                         )}
                                     </View>

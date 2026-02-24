@@ -30,6 +30,22 @@ export interface HealthRecord {
         goal: number;
         timestamp: string;
     };
+    heartRate?: {
+        bpm: number;
+        timestamp: string;
+    };
+    temperature?: {
+        value: number;
+        unit: 'C' | 'F';
+        timestamp: string;
+    };
+}
+
+export interface HealthHistory {
+    bloodPressure: Array<{ systolic: number; diastolic: number; timestamp: string }>;
+    bloodSugar: Array<{ level: number; timestamp: string }>;
+    heartRate: Array<{ bpm: number; timestamp: string }>;
+    temperature: Array<{ value: number; unit: 'C' | 'F'; timestamp: string }>;
 }
 
 interface HealthState {
@@ -39,9 +55,17 @@ interface HealthState {
     updateBloodSugar: (sugar: HealthRecord['bloodSugar']) => void;
     updateWeight: (weight: HealthRecord['weight']) => void;
     updateWater: (water: HealthRecord['water']) => void;
+    history: HealthHistory;
+    addHealthData: (data: { bp?: { systolic: number; diastolic: number }, sugar?: number, heartRate?: number, temp?: { value: number, unit: 'C' | 'F' } }) => void;
 }
 
 const DEFAULT_GOAL = 8;
+const INITIAL_HISTORY: HealthHistory = {
+    bloodPressure: [],
+    bloodSugar: [],
+    heartRate: [],
+    temperature: []
+};
 
 export const useHealthStore = create<HealthState>()(
     persist(
@@ -68,6 +92,31 @@ export const useHealthStore = create<HealthState>()(
             updateWater: (water) => set((state) => ({
                 records: { ...state.records, water }
             })),
+            history: INITIAL_HISTORY,
+            addHealthData: (data) => set((state) => {
+                const now = new Date().toISOString();
+                const newHistory = { ...state.history } || INITIAL_HISTORY;
+                let newRecords = { ...state.records };
+
+                if (data.bp) {
+                    newHistory.bloodPressure = [...(newHistory.bloodPressure || []), { ...data.bp, timestamp: now }];
+                    newRecords.bloodPressure = { systolic: data.bp.systolic, diastolic: data.bp.diastolic, timestamp: now };
+                }
+                if (data.sugar) {
+                    newHistory.bloodSugar = [...(newHistory.bloodSugar || []), { level: data.sugar, timestamp: now }];
+                    newRecords.bloodSugar = { level: data.sugar, type: 'Fasting', timestamp: now };
+                }
+                if (data.heartRate) {
+                    newHistory.heartRate = [...(newHistory.heartRate || []), { bpm: data.heartRate, timestamp: now }];
+                    newRecords.heartRate = { bpm: data.heartRate, timestamp: now };
+                }
+                if (data.temp) {
+                    newHistory.temperature = [...(newHistory.temperature || []), { value: data.temp.value, unit: data.temp.unit, timestamp: now }];
+                    newRecords.temperature = { value: data.temp.value, unit: data.temp.unit, timestamp: now };
+                }
+
+                return { history: newHistory, records: newRecords };
+            }),
         }),
         {
             name: 'enlivo-health-storage',
