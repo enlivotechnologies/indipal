@@ -13,6 +13,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -139,6 +140,7 @@ export default function NurseBookingScreen() {
     const [isConfirmed, setIsConfirmed] = useState(false);
     const [orderStatus, setOrderStatus] = useState<'idle' | 'paying' | 'confirmed'>('idle');
     const [selectedPayment, setSelectedPayment] = useState<'wallet' | 'card'>('wallet');
+    const [address, setAddress] = useState('');
     const navigation = useNavigation();
 
     useEffect(() => {
@@ -248,6 +250,7 @@ export default function NurseBookingScreen() {
                 <Animated.View entering={FadeInUp.delay(100).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mt-8 mb-10">
                     <LinearGradient
                         colors={['#10B981', '#059669']}
+                        style={{ borderRadius: 15, overflow: 'hidden' }}
                         className="rounded-[24px] p-8 shadow-2xl shadow-emerald-100 flex-row items-center"
                     >
                         <View className="flex-1">
@@ -374,33 +377,52 @@ export default function NurseBookingScreen() {
                     </View>
                 </Animated.View>
 
-                {/* Payment & Security */}
-                <Animated.View entering={FadeInUp.delay(600).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mb-10">
-                    <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-6 ml-1">Secure Transaction</Text>
-                    <View className="bg-gray-900 rounded-[24px] p-8 shadow-2xl">
-                        <View className="flex-row items-center mb-6">
-                            <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center">
-                                <Ionicons name="shield-checkmark" size={24} color="#10B981" />
+                {/* Service Configuration Section */}
+                <Animated.View entering={FadeInUp.delay(550).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mt-4">
+                    <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-4 ml-1">SERVICE SETTINGS</Text>
+                    <View className="bg-gray-50 rounded-[15px] p-8 border border-gray-100 mb-4">
+                        <View className="flex-row items-center mb-8">
+                            <View className="w-14 h-14 bg-white rounded-[22px] items-center justify-center shadow-sm border border-gray-100">
+                                <Ionicons name="location" size={26} color="#059669" />
                             </View>
-                            <View className="ml-4 flex-1">
-                                <Text className="text-white font-black">Escrow Protection</Text>
-                                <Text className="text-white/40 text-[10px] font-bold uppercase py-0.5">Funds released after service</Text>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">VISIT LOCATION</Text>
+                                <TextInput
+                                    placeholder="e.g. 402, Sunshine Apts, Sector 4"
+                                    value={address}
+                                    onChangeText={setAddress}
+                                    className="text-gray-900 font-bold text-sm"
+                                    placeholderTextColor="#CBD5E1"
+                                />
                             </View>
                         </View>
-                        <View className="flex-row gap-x-3">
-                            <TouchableOpacity
-                                onPress={() => setSelectedPayment('wallet')}
-                                className={`flex-1 py-5 rounded-2xl items-center border ${selectedPayment === 'wallet' ? 'bg-white border-white' : 'border-white/10'}`}
-                            >
-                                <Text className={`text-[10px] font-black ${selectedPayment === 'wallet' ? 'text-gray-900' : 'text-white/30'}`}>WALLET</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                onPress={() => setSelectedPayment('card')}
-                                className={`flex-1 py-5 rounded-2xl items-center border ${selectedPayment === 'card' ? 'bg-white border-white' : 'border-white/10'}`}
-                            >
-                                <Text className={`text-[10px] font-black ${selectedPayment === 'card' ? 'text-gray-900' : 'text-white/30'}`}>CREDIT CARD</Text>
-                            </TouchableOpacity>
+
+                        <View className="flex-row items-center">
+                            <View className="w-14 h-14 bg-white rounded-[22px] items-center justify-center shadow-sm border border-gray-100">
+                                <Ionicons name="card" size={26} color="#059669" />
+                            </View>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PAYMENT METHOD</Text>
+                                <View className="flex-row gap-x-3 mt-2">
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedPayment('wallet')}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'wallet' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-100'}`}
+                                    >
+                                        <Text className={`text-[10px] font-black ${selectedPayment === 'wallet' ? 'text-white' : 'text-gray-400'}`}>WALLET</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedPayment('card')}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'card' ? 'bg-emerald-600 border-emerald-600' : 'bg-white border-gray-100'}`}
+                                    >
+                                        <Text className={`text-[10px] font-black ${selectedPayment === 'card' ? 'text-white' : 'text-gray-400'}`}>CREDIT CARD</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </View>
+                    </View>
+                    <View className="flex-row items-center px-4 mb-4">
+                        <Ionicons name="information-circle" size={14} color="#94A3B8" />
+                        <Text className="text-gray-400 text-[10px] font-bold ml-2 italic">Note: Money will be paid only after completing the service</Text>
                     </View>
                 </Animated.View>
             </ScrollView>
@@ -592,7 +614,8 @@ export default function NurseBookingScreen() {
             >
                 <LinearGradient
                     colors={['rgba(255,255,255,0.9)', 'white']}
-                    className="rounded-[44px] border border-gray-100 p-8 flex-row items-center justify-between shadow-2xl shadow-black/15"
+                    style={{ borderRadius: 24, overflow: 'hidden' }}
+                    className="rounded-[15px] border border-gray-100 p-8 flex-row items-center justify-between shadow-2xl shadow-black/15"
                 >
                     <View>
                         <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Total Fee</Text>

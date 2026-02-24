@@ -378,7 +378,7 @@ export default function PharmacyOrderingScreen() {
                                 <TouchableOpacity
                                     onPress={() => setSelectedItem(item)}
                                     activeOpacity={0.9}
-                                    className={`rounded-[24px] overflow-hidden border-2 shadow-md ${cart[item.id] ? 'border-indigo-500 bg-indigo-50' : 'border-gray-50 bg-white'
+                                    className={`rounded-[15px] overflow-hidden border-2 shadow-md ${cart[item.id] ? 'border-indigo-500 bg-indigo-50' : 'border-gray-50 bg-white'
                                         }`}
                                 >
                                     <View className="h-44 relative bg-gray-100">
@@ -421,14 +421,14 @@ export default function PharmacyOrderingScreen() {
 
                 {/* Delivery Information Section */}
                 <Animated.View entering={FadeInUp.delay(500).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mt-4">
-                    <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-4 ml-1">Delivery Settings</Text>
-                    <View className="bg-gray-50 rounded-[38px] p-8 border border-gray-100 mb-6">
-                        <View className="flex-row items-center mb-6">
-                            <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm border border-gray-100">
-                                <Ionicons name="location" size={24} color="#6366F1" />
+                    <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-4 ml-1">DELIVERY SETTINGS</Text>
+                    <View className="bg-gray-50 rounded-[48px] p-8 border border-gray-100 mb-4">
+                        <View className="flex-row items-center mb-8">
+                            <View className="w-14 h-14 bg-white rounded-[22px] items-center justify-center shadow-sm border border-gray-100">
+                                <Ionicons name="location" size={26} color="#6366F1" />
                             </View>
-                            <View className="ml-4 flex-1">
-                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Target Pharmacy</Text>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">TARGET PHARMACY</Text>
                                 <TextInput
                                     placeholder="e.g. Apollo Pharmacy, Sector 4"
                                     value={address}
@@ -440,27 +440,31 @@ export default function PharmacyOrderingScreen() {
                         </View>
 
                         <View className="flex-row items-center">
-                            <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm border border-gray-100">
-                                <Ionicons name="card" size={24} color="#6366F1" />
+                            <View className="w-14 h-14 bg-white rounded-[22px] items-center justify-center shadow-sm border border-gray-100">
+                                <Ionicons name="card" size={26} color="#6366F1" />
                             </View>
-                            <View className="ml-4 flex-1">
-                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Payment Method</Text>
-                                <View className="flex-row gap-x-3 mt-1">
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PAYMENT METHOD</Text>
+                                <View className="flex-row gap-x-3 mt-2">
                                     <TouchableOpacity
                                         onPress={() => setSelectedPayment('wallet')}
-                                        className={`px-4 py-2 rounded-xl border ${selectedPayment === 'wallet' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'wallet' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
                                     >
                                         <Text className={`text-[10px] font-black ${selectedPayment === 'wallet' ? 'text-white' : 'text-gray-400'}`}>WALLET</Text>
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => setSelectedPayment('card')}
-                                        className={`px-4 py-2 rounded-xl border ${selectedPayment === 'card' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'card' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
                                     >
                                         <Text className={`text-[10px] font-black ${selectedPayment === 'card' ? 'text-white' : 'text-gray-400'}`}>CREDIT CARD</Text>
                                     </TouchableOpacity>
                                 </View>
                             </View>
                         </View>
+                    </View>
+                    <View className="flex-row items-center px-4 mb-10">
+                        <Ionicons name="information-circle" size={14} color="#94A3B8" />
+                        <Text className="text-gray-400 text-[10px] font-bold ml-2 italic">Note: Money will be paid only after completing the service</Text>
                     </View>
                 </Animated.View>
             </ScrollView>
@@ -676,6 +680,7 @@ export default function PharmacyOrderingScreen() {
             >
                 <LinearGradient
                     colors={['rgba(255,255,255,0.9)', 'white']}
+                    style={{ borderRadius: 15, overflow: 'hidden' }}
                     className="rounded-[44px] border border-gray-100 p-8 flex-row items-center justify-between shadow-2xl shadow-black/15"
                 >
                     <View>

@@ -102,6 +102,7 @@ export default function WalletScreen() {
                 <Animated.View entering={FadeInUp.delay(100).duration(600).easing(Easing.out(Easing.quad))} className="mb-10">
                     <LinearGradient
                         colors={['#1F2937', '#111827']}
+                        style={{ borderRadius: 15, overflow: 'hidden' }}
                         className="p-8 rounded-[40px] shadow-2xl shadow-black/20"
                     >
                         <Text className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-2">Total Balance</Text>

@@ -1,4 +1,5 @@
 import { useAuthStore } from "@/store/authStore";
+import { useBookingStore } from "@/store/bookingStore";
 import { useHealthStore } from "@/store/healthStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
@@ -11,6 +12,10 @@ export default function PalHome() {
     const user = useAuthStore((state) => state.user);
     const insets = useSafeAreaInsets();
     const healthRecords = useHealthStore((state) => state.records);
+    const { bookings, updateBookingStatus } = useBookingStore();
+
+    // Filter bookings for this Pal (simulated, usually would check palId)
+    const pendingAppointments = bookings.filter(b => b.status === 'Pending');
 
     return (
         <View style={{ flex: 1, backgroundColor: 'white' }}>
@@ -29,7 +34,10 @@ export default function PalHome() {
                         <Text className="text-3xl font-black text-gray-900" numberOfLines={1}>Hello {user?.name?.split(' ')[0] || 'Pal'}! ✨</Text>
                     </View>
                     <TouchableOpacity className="w-14 h-14 bg-emerald-100 rounded-[22px] items-center justify-center border-2 border-white shadow-sm overflow-hidden">
-                        <Ionicons name="shield" size={28} color="#059669" />
+                        <Ionicons name="notifications" size={24} color="#059669" />
+                        {pendingAppointments.length > 0 && (
+                            <View className="absolute top-3 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />
+                        )}
                     </TouchableOpacity>
                 </View>
 
@@ -57,6 +65,44 @@ export default function PalHome() {
                 {/* Quality Service Requests - Dynamic Queue */}
                 <Animated.View entering={FadeInDown.delay(100)} className="mb-10">
                     <Text className="text-xs font-bold text-orange-600 uppercase tracking-[3px] mb-4 ml-1">Opportunity Queue 🔥</Text>
+
+                    {/* Dynamic Appointment Requests */}
+                    {pendingAppointments.map((booking) => (
+                        <Animated.View key={booking.id} entering={FadeInDown} className="bg-orange-50 border-2 border-orange-200 rounded-[40px] p-6 mb-4 relative">
+                            <View className="flex-row items-center mb-4">
+                                <View className="w-12 h-12 bg-orange-500 rounded-2xl items-center justify-center shadow-sm">
+                                    <Ionicons name="calendar" size={24} color="white" />
+                                </View>
+                                <View className="ml-4 flex-1">
+                                    <Text className="font-black text-gray-900">Care Appointment</Text>
+                                    <Text className="text-[10px] font-bold text-orange-600 uppercase tracking-widest">New Request • ₹{booking.price}/hr</Text>
+                                </View>
+                            </View>
+                            <Text className="text-gray-500 text-xs font-bold leading-5 mb-4">
+                                Appointment requested by <Text className="text-gray-900">{booking.userName}</Text> for <Text className="text-gray-900">{booking.date} at {booking.time}</Text>.
+                            </Text>
+                            <View className="flex-row gap-x-3">
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                        updateBookingStatus(booking.id, 'Accepted');
+                                    }}
+                                    className="flex-1 bg-emerald-600 py-4 rounded-2xl items-center"
+                                >
+                                    <Text className="text-white font-black text-xs uppercase tracking-widest">Accept</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                        updateBookingStatus(booking.id, 'Declined');
+                                    }}
+                                    className="flex-1 bg-gray-200 py-4 rounded-2xl items-center"
+                                >
+                                    <Text className="text-gray-500 font-black text-xs uppercase tracking-widest">Decline</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </Animated.View>
+                    ))}
 
                     {/* Grocery Task (Restored) */}
                     <View className="bg-emerald-50 border-2 border-emerald-200 rounded-[40px] p-6 mb-4 relative">

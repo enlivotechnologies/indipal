@@ -74,6 +74,12 @@ export default function FamilyHomeScreen() {
         </View>
         <View className="flex-row items-center gap-x-2">
           <TouchableOpacity
+            onPress={() => router.push('/(family)/account/wallet' as any)}
+            className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
+          >
+            <Ionicons name="wallet-outline" size={20} color="#1F2937" />
+          </TouchableOpacity>
+          <TouchableOpacity
             onPress={() => router.push('/(family)/account/notifications' as any)}
             className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
           >
@@ -111,7 +117,8 @@ export default function FamilyHomeScreen() {
             colors={['#F59E0B', '#D97706']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            className="p-8 w-full rounded-[48px] shadow-xl shadow-orange-200"
+            style={{ borderRadius: 15, overflow: 'hidden' }}
+            className="p-10 w-full shadow-2xl shadow-orange-200"
           >
             <View className="flex-row justify-between items-start mb-6">
               <View className="flex-row items-center flex-1">
@@ -132,7 +139,7 @@ export default function FamilyHomeScreen() {
               </View>
             </View>
 
-            <View className="bg-black/10 p-5 rounded-full flex-row items-center">
+            <View className="bg-black/15 p-6 rounded-[24px] flex-row items-center">
               <Ionicons name="location" size={20} color="white" />
               <Text className="text-white font-bold text-sm ml-4 flex-1" numberOfLines={1}>{linkedSenior.address}</Text>
             </View>
@@ -178,7 +185,7 @@ export default function FamilyHomeScreen() {
           <TouchableOpacity
             onPress={() => router.push('/(family)/services/errands')}
             activeOpacity={0.9}
-            className="bg-gray-900 p-8 rounded-[24px] shadow-2xl shadow-black/20"
+            className="bg-gray-900 p-8 rounded-[15px] shadow-2xl shadow-black/20"
           >
             <View className="flex-row items-center justify-between mb-6">
               <View>
@@ -208,7 +215,7 @@ export default function FamilyHomeScreen() {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => router.push('/(family)/tracking')}
-            className="bg-gray-50 rounded-[28px] overflow-hidden border border-gray-100 shadow-sm"
+            className="bg-gray-50 rounded-[15px] overflow-hidden border border-gray-100 shadow-sm"
           >
             {/* Simulated Map View */}
             <View className="h-48 bg-gray-200 items-center justify-center">
@@ -284,7 +291,7 @@ export default function FamilyHomeScreen() {
                     pathname: '/(family)/profiles/pal',
                     params: { id: pal.id, name: pal.name, image: pal.image }
                   } as any)}
-                  className="bg-white border border-gray-200 p-5 rounded-[20px] items-center shadow-sm w-36"
+                  className="bg-white border border-gray-200 p-5 rounded-[15px] items-center shadow-sm w-36"
                 >
                   <View className="relative mb-3">
                     <Image source={{ uri: pal.image }} className="w-20 h-20 rounded-[28px]" />
@@ -314,7 +321,7 @@ export default function FamilyHomeScreen() {
             </View>
           </View>
 
-          <View className="flex-row flex-wrap gap-4">
+          <View className="flex-row flex-wrap gap-4 rounded-[15px]">
             <HealthStatusCard
               icon="happy"
               label="Mood"
@@ -365,7 +372,7 @@ export default function FamilyHomeScreen() {
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                     if (service.route) router.push(service.route as any);
                   }}
-                  className="h-48 rounded-[24px] overflow-hidden shadow-2xl shadow-black/20 relative bg-gray-900"
+                  className="h-48 rounded-[15px] overflow-hidden shadow-2xl shadow-black/20 relative bg-gray-900"
                 >
                   <Image
                     source={{ uri: service.image }}
@@ -396,7 +403,7 @@ export default function FamilyHomeScreen() {
           <TouchableOpacity
             activeOpacity={0.9}
             onPress={() => router.push('/(family)/account/wallet')}
-            className="overflow-hidden rounded-[24px]"
+            className="overflow-hidden rounded-[15px]"
           >
             <LinearGradient
               colors={['#1F2937', '#111827']}
@@ -464,7 +471,7 @@ export default function FamilyHomeScreen() {
 
       {/* Custom Floating Bottom Bar */}
       <Animated.View entering={FadeInUp.delay(200).duration(600).easing(Easing.out(Easing.quad))} className="absolute bottom-0 left-0 right-0 px-6 bg-white/10" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
-        <View style={styles.tabBar} className="bg-gray-900/95 flex-row justify-between items-center h-16 rounded-[28px] px-3 shadow-2xl">
+        <View style={styles.tabBar} className="bg-gray-900/95 flex-row items-center h-16 rounded-[28px] px-2 shadow-2xl">
           <TabButton icon="home" label="Home" active={activeTab === 'Home'} onPress={() => handleTabPress('Home')} />
           <TabButton icon="cart" label="Care" active={activeTab === 'Care'} onPress={() => handleTabPress('Care')} />
           <TabButton icon="map" label="Track" active={activeTab === 'Track'} onPress={() => handleTabPress('Track')} />
@@ -508,13 +515,15 @@ function ErrandItem({ title, status }: { title: string; status: 'completed' | 'p
 
 function TabButton({ icon, label, active, onPress }: { icon: any; label: string; active: boolean; onPress: () => void }) {
   return (
-    <TouchableOpacity
-      onPress={onPress}
-      className={`flex-row items-center px-4 py-2 rounded-2xl ${active ? 'bg-orange-500' : ''}`}
-    >
-      <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
-      {active && <Text className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
-    </TouchableOpacity>
+    <View className="flex-1 h-full items-center justify-center">
+      <TouchableOpacity
+        onPress={onPress}
+        className={`flex-row items-center justify-center px-4 h-10 rounded-2xl ${active ? 'bg-orange-500' : ''}`}
+      >
+        <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
+        {active && <Text numberOfLines={1} className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
+      </TouchableOpacity>
+    </View>
   );
 }
 

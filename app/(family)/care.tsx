@@ -9,7 +9,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 const CORE_SERVICES = [
     { id: '1', title: 'Home Nurse', subtitle: 'Expert Care', icon: 'person-add', color: '#10B981', image: 'https://images.unsplash.com/photo-1582750433449-64c3efdf1e6d?auto=format&fit=crop&q=80&w=400', route: '/(family)/services/nurse' },
     { id: '2', title: 'House Help', subtitle: 'Maintenance', icon: 'home', color: '#F59E0B', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=400', route: '/(family)/services/house-help' },
-    { id: '3', title: 'Grocery', subtitle: 'Essentials', icon: 'cart', color: '#06B6D4', image: 'https://images.unsplash.com/photo-1604719312563-8912e9223c6a?auto=format&fit=crop&q=80&w=400', route: '/(family)/services/grocery' },
+    { id: '3', title: 'Grocery', subtitle: 'Essentials', icon: 'cart', color: '#10B981', image: 'https://images.unsplash.com/photo-1604719312563-8912e9223c6a?auto=format&fit=crop&q=80&w=400', route: '/(family)/services/grocery' },
     { id: '4', title: 'Pharmacy', subtitle: 'Medicines', icon: 'bandage', color: '#6366F1', image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?auto=format&fit=crop&q=80&w=400', route: '/(family)/services/pharmacy' },
 ];
 

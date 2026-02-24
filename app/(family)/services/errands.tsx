@@ -73,6 +73,8 @@ export default function ErrandsScreen() {
     const [errands, setErrands] = useState<Errand[]>(INITIAL_ERRANDS);
     const [isAdding, setIsAdding] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
+    const [selectedPayment, setSelectedPayment] = useState<'wallet' | 'card'>('wallet');
+    const [address, setAddress] = useState('');
 
     const sortedErrands = useMemo(() => {
         const order: Record<ErrandsStatus, number> = { 'in-progress': 0, 'pending': 1, 'completed': 2 };
@@ -281,6 +283,55 @@ export default function ErrandsScreen() {
                         );
                     })}
                 </View>
+
+                {/* Service Configuration Section */}
+                <Animated.View entering={FadeInDown.delay(700).duration(600)} className="px-6 mt-4">
+                    <Text className="text-[10px] font-black text-gray-400 uppercase tracking-[3px] mb-4 ml-2">GLOBAL SERVICE SETTINGS</Text>
+                    <View className="bg-white rounded-[48px] p-8 border border-gray-300 mb-4 shadow-sm">
+                        <View className="flex-row items-center mb-8">
+                            <View className="w-14 h-14 bg-gray-50 rounded-[22px] items-center justify-center border border-gray-100">
+                                <Ionicons name="location" size={26} color="#6366F1" />
+                            </View>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">DEFAULT LOCATION</Text>
+                                <TextInput
+                                    placeholder="e.g. 402, Sunshine Apts, Sector 4"
+                                    value={address}
+                                    onChangeText={setAddress}
+                                    className="text-gray-900 font-bold text-sm"
+                                    placeholderTextColor="#CBD5E1"
+                                />
+                            </View>
+                        </View>
+
+                        <View className="flex-row items-center">
+                            <View className="w-14 h-14 bg-gray-50 rounded-[22px] items-center justify-center border border-gray-100">
+                                <Ionicons name="card" size={26} color="#6366F1" />
+                            </View>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PAYMENT METHOD</Text>
+                                <View className="flex-row gap-x-3 mt-2">
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedPayment('wallet')}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'wallet' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
+                                    >
+                                        <Text className={`text-[10px] font-black ${selectedPayment === 'wallet' ? 'text-white' : 'text-gray-400'}`}>WALLET</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedPayment('card')}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'card' ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
+                                    >
+                                        <Text className={`text-[10px] font-black ${selectedPayment === 'card' ? 'text-white' : 'text-gray-400'}`}>CREDIT CARD</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </View>
+                    <View className="flex-row items-center px-4 mb-4">
+                        <Ionicons name="information-circle" size={14} color="#94A3B8" />
+                        <Text className="text-gray-400 text-[10px] font-bold ml-2 italic">Note: Money will be paid only after completing the service</Text>
+                    </View>
+                </Animated.View>
             </ScrollView>
 
             {/* Quick Add Bottom Bar */}

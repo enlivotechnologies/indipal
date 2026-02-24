@@ -13,6 +13,7 @@ import {
     ScrollView,
     StyleSheet,
     Text,
+    TextInput,
     TouchableOpacity,
     View
 } from 'react-native';
@@ -88,6 +89,8 @@ export default function HouseHelpScreen() {
     const [viewItem, setViewItem] = useState<HouseHelpService | null>(null);
     const [orderStatus, setOrderStatus] = useState<'idle' | 'paying' | 'confirmed'>('idle');
     const [isConfirmed, setIsConfirmed] = useState(false);
+    const [selectedPayment, setSelectedPayment] = useState<'wallet' | 'card'>('wallet');
+    const [address, setAddress] = useState('');
     const navigation = useNavigation();
 
     useEffect(() => {
@@ -192,6 +195,7 @@ export default function HouseHelpScreen() {
                     <LinearGradient
                         colors={['#F59E0B', '#D97706']}
                         className="rounded-[24px] p-8 shadow-2xl shadow-orange-100 flex-row items-center"
+                        style={{ borderRadius: 15, overflow: 'hidden' }}
                     >
                         <View className="flex-1">
                             <Text className="text-white/70 text-[10px] font-black uppercase tracking-[3px] mb-2">Impeccable Care</Text>
@@ -239,16 +243,52 @@ export default function HouseHelpScreen() {
                     ))}
                 </View>
 
-                {/* Safety Promise */}
-                <Animated.View entering={FadeInUp.delay(400).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mb-10">
-                    <View className="bg-gray-50 p-8 rounded-[24px] border border-gray-100 flex-row items-center">
-                        <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm">
-                            <Ionicons name="shield-checkmark" size={24} color="#F59E0B" />
+                {/* Service Configuration Section */}
+                <Animated.View entering={FadeInUp.delay(550).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mt-4">
+                    <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-4 ml-1">SERVICE SETTINGS</Text>
+                    <View className="bg-gray-50 rounded-[15px] p-8 border border-gray-100 mb-4">
+                        <View className="flex-row items-center mb-8">
+                            <View className="w-14 h-14 bg-white rounded-[22px] items-center justify-center shadow-sm border border-gray-100">
+                                <Ionicons name="location" size={26} color="#F59E0B" />
+                            </View>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">CLEANING LOCATION</Text>
+                                <TextInput
+                                    placeholder="e.g. 402, Sunshine Apts, Sector 4"
+                                    value={address}
+                                    onChangeText={setAddress}
+                                    className="text-gray-900 font-bold text-sm"
+                                    placeholderTextColor="#CBD5E1"
+                                />
+                            </View>
                         </View>
-                        <View className="ml-5 flex-1">
-                            <Text className="text-gray-900 font-black">Vetted Professionals</Text>
-                            <Text className="text-gray-500 text-[11px] font-medium leading-4 mt-0.5">Every staff member undergoes intense identity verification and criminal record checks.</Text>
+
+                        <View className="flex-row items-center">
+                            <View className="w-14 h-14 bg-white rounded-[22px] items-center justify-center shadow-sm border border-gray-100">
+                                <Ionicons name="card" size={26} color="#F59E0B" />
+                            </View>
+                            <View className="ml-5 flex-1">
+                                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">PAYMENT METHOD</Text>
+                                <View className="flex-row gap-x-3 mt-2">
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedPayment('wallet')}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'wallet' ? 'bg-orange-600 border-orange-600' : 'bg-white border-gray-100'}`}
+                                    >
+                                        <Text className={`text-[10px] font-black ${selectedPayment === 'wallet' ? 'text-white' : 'text-gray-400'}`}>WALLET</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={() => setSelectedPayment('card')}
+                                        className={`px-5 py-3 rounded-2xl border ${selectedPayment === 'card' ? 'bg-orange-600 border-orange-600' : 'bg-white border-gray-100'}`}
+                                    >
+                                        <Text className={`text-[10px] font-black ${selectedPayment === 'card' ? 'text-white' : 'text-gray-400'}`}>CREDIT CARD</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </View>
+                    </View>
+                    <View className="flex-row items-center px-4 mb-4">
+                        <Ionicons name="information-circle" size={14} color="#94A3B8" />
+                        <Text className="text-gray-400 text-[10px] font-bold ml-2 italic">Note: Money will be paid only after completing the service</Text>
                     </View>
                 </Animated.View>
             </ScrollView>
@@ -273,7 +313,7 @@ export default function HouseHelpScreen() {
                         key={`modal-help-${viewItem?.id}`}
                         entering={SlideInDown.duration(600).easing(Easing.inOut(Easing.ease))}
                         exiting={SlideOutDown.duration(500).easing(Easing.inOut(Easing.ease))}
-                        className="bg-white rounded-t-[60px] p-10 max-h-[85%] shadow-2xl"
+                        className="bg-white rounded-t-[15px] p-10 max-h-[85%] shadow-2xl"
                     >
                         {viewItem && (
                             <ScrollView showsVerticalScrollIndicator={false}>
@@ -356,7 +396,7 @@ export default function HouseHelpScreen() {
                 className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
                 style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >
-                <View className="bg-gray-900 rounded-[44px] border border-white/10 p-8 flex-row items-center justify-between shadow-2xl">
+                <View className="bg-gray-400 rounded-[24px] border border-white/10 p-8 flex-row items-center justify-between shadow-2xl">
                     <View>
                         <Text className="text-white/40 text-[10px] font-black uppercase tracking-widest mb-1">Total Fee</Text>
                         <Text className="text-white text-3xl font-black">₹{selectedService?.price || 0}</Text>
