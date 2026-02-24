@@ -11,7 +11,7 @@ export default function ModalScreen() {
 
       <TouchableOpacity
         style={styles.link}
-        onPress={() => router.replace("/senior")}
+        onPress={() => router.replace("/(senior)/home")}
       >
         <ThemedText type="link">Go back to Home</ThemedText>
       </TouchableOpacity>
