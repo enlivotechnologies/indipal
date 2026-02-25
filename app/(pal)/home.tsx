@@ -1,18 +1,25 @@
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
+import { useGigStore } from "@/store/gigStore";
 import { useHealthStore } from "@/store/healthStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 import { ScrollView, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function PalHome() {
     const user = useAuthStore((state) => state.user);
+    const router = useRouter();
     const insets = useSafeAreaInsets();
     const healthRecords = useHealthStore((state) => state.records);
     const { bookings, updateBookingStatus } = useBookingStore();
+    const { gigs, assignPal } = useGigStore();
+
+    const activeGig = gigs.find(g => ['approved_and_assigned', 'matched', 'active'].includes(g.status));
+    const availableGigs = gigs.filter(g => g.status === 'approved_and_assigned');
 
     // Filter bookings for this Pal (simulated, usually would check palId)
     const pendingAppointments = bookings.filter(b => b.status === 'Pending');
@@ -160,40 +167,79 @@ export default function PalHome() {
                             <Text className="text-white font-black text-xs uppercase tracking-widest">Secure Match</Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* New Grocery Gigs from Family Approval */}
+                    {availableGigs.map((gig) => (
+                        <Animated.View key={gig.id} entering={FadeInDown} className="mt-4 bg-orange-50 border-2 border-orange-200 rounded-[40px] p-6 relative">
+                            <View className="flex-row items-center mb-4">
+                                <View className="w-12 h-12 bg-orange-500 rounded-2xl items-center justify-center shadow-sm">
+                                    <Ionicons name="cart" size={24} color="white" />
+                                </View>
+                                <View className="ml-4 flex-1">
+                                    <Text className="font-black text-gray-900">{gig.category} Pickup</Text>
+                                    <View className="flex-row items-center">
+                                        <Text className="text-[10px] font-black text-orange-600 uppercase tracking-widest">Verified • ₹250 Est.</Text>
+                                    </View>
+                                </View>
+                            </View>
+                            <Text className="text-gray-500 text-xs font-bold mb-4">
+                                {gig.seniorName} needs {gig.items.length} items. Budget: ₹{gig.budget}.
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                    assignPal(gig.id, user?.phone || 'pal_1', user?.name || 'Arjun');
+                                }}
+                                className="bg-orange-500 py-4 rounded-2xl items-center"
+                            >
+                                <Text className="text-white font-black text-xs uppercase tracking-widest">Claim this Gig</Text>
+                            </TouchableOpacity>
+                        </Animated.View>
+                    ))}
                 </Animated.View>
 
                 {/* Assigned Gig Detail */}
                 <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 ml-1">Current Active Gig</Text>
-                <Animated.View entering={FadeInDown.delay(200)} className="bg-white border-2 border-emerald-500/20 rounded-[40px] p-8 shadow-sm mb-10">
-                    <View className="flex-row items-center mb-6">
-                        <View className="relative">
-                            <View className="w-16 h-16 bg-gray-100 rounded-2xl items-center justify-center overflow-hidden">
-                                <Ionicons name="person" size={32} color="#D1D5DB" />
+                {activeGig ? (
+                    <Animated.View entering={FadeInDown.delay(200)} className="bg-white border-2 border-emerald-500/20 rounded-[40px] p-8 shadow-sm mb-10">
+                        <View className="flex-row items-center mb-6">
+                            <View className="relative">
+                                <View className="w-16 h-16 bg-gray-100 rounded-2xl items-center justify-center overflow-hidden">
+                                    <Ionicons name="person" size={32} color="#D1D5DB" />
+                                </View>
+                                <View className="absolute -top-2 -right-2 bg-emerald-500 px-2 py-1 rounded-lg">
+                                    <Text className="text-[8px] font-bold text-white">LIVE</Text>
+                                </View>
                             </View>
-                            <View className="absolute -top-2 -right-2 bg-emerald-500 px-2 py-1 rounded-lg">
-                                <Text className="text-[8px] font-bold text-white">LIVE</Text>
+                            <View className="ml-5 flex-1">
+                                <Text className="font-black text-xl text-gray-900" numberOfLines={1}>{activeGig.seniorName}</Text>
+                                <Text className="text-xs font-bold text-emerald-600">Senior Link Verified</Text>
                             </View>
                         </View>
-                        <View className="ml-5 flex-1">
-                            <Text className="font-black text-xl text-gray-900" numberOfLines={1}>Ramesh Chandra</Text>
-                            <Text className="text-xs font-bold text-emerald-600">Senior Link Verified</Text>
+
+                        <View className="bg-gray-50 rounded-2xl p-4 gap-y-4">
+                            <GigStep icon="list" label={`${activeGig.category}: ${activeGig.items.length} items`} />
+                            <GigStep icon="shield-checkmark" label="Payment Verified" />
+                            <GigStep icon="time" label="Active Now" />
                         </View>
-                    </View>
 
-                    <View className="bg-gray-50 rounded-2xl p-4 gap-y-4">
-                        <GigStep icon="location" label="Sector 4, HSR Layout" />
-                        <GigStep icon="time" label="Ends at 02:30 PM (2h left)" />
-                        <GigStep icon="list" label="Grocery: Milk, Meds, Bread" />
+                        <TouchableOpacity
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+                                router.push('/(pal)/active-gig');
+                            }}
+                            className="bg-emerald-600 mt-8 py-5 rounded-3xl items-center shadow-lg shadow-emerald-100 flex-row justify-center"
+                        >
+                            <Ionicons name="clipboard" size={20} color="white" />
+                            <Text className="text-white font-bold ml-2 text-lg">View Checklist</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                ) : (
+                    <View className="bg-gray-50 rounded-[40px] p-8 items-center justify-center border border-gray-100 mb-10">
+                        <Ionicons name="cafe-outline" size={48} color="#D1D5DB" />
+                        <Text className="text-gray-400 font-bold mt-4 text-center">No active jobs. Take a break or check the queue!</Text>
                     </View>
-
-                    <TouchableOpacity
-                        onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)}
-                        className="bg-emerald-600 mt-8 py-5 rounded-3xl items-center shadow-lg shadow-emerald-100 flex-row justify-center"
-                    >
-                        <Ionicons name="checkmark-circle" size={20} color="white" />
-                        <Text className="text-white font-bold ml-2 text-lg">Check-in at Location</Text>
-                    </TouchableOpacity>
-                </Animated.View>
+                )}
 
                 {/* Senior Health Insight for Pals */}
                 <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-6 ml-1">Senior Well-being</Text>

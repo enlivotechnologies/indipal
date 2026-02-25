@@ -3,6 +3,21 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 
 export type MoodType = 'Happy' | 'Calm' | 'Sad' | 'Stressed' | 'Tired';
+export type MedicationStatus = 'active' | 'pending_review' | 'refill_requested' | 'archived';
+
+export interface Medication {
+    id: string;
+    name: string;
+    dosage: string;
+    frequency: string;
+    time?: string;
+    prescriptionImage?: string;
+    status: MedicationStatus;
+    startDate: string;
+    addedBy: 'senior' | 'family';
+    color: string;
+    takenToday?: boolean;
+}
 
 export interface HealthRecord {
     mood?: {
@@ -56,7 +71,12 @@ interface HealthState {
     updateWeight: (weight: HealthRecord['weight']) => void;
     updateWater: (water: HealthRecord['water']) => void;
     history: HealthHistory;
+    medications: Medication[];
     addHealthData: (data: { bp?: { systolic: number; diastolic: number }, sugar?: number, heartRate?: number, temp?: { value: number, unit: 'C' | 'F' } }) => void;
+    addMedication: (med: Omit<Medication, 'id' | 'startDate' | 'status'>) => void;
+    updateMedicationStatus: (id: string, status: MedicationStatus) => void;
+    requestRefill: (id: string) => void;
+    toggleMedicationTaken: (id: string) => void;
 }
 
 const DEFAULT_GOAL = 8;
@@ -95,7 +115,7 @@ export const useHealthStore = create<HealthState>()(
             history: INITIAL_HISTORY,
             addHealthData: (data) => set((state) => {
                 const now = new Date().toISOString();
-                const newHistory = { ...state.history } || INITIAL_HISTORY;
+                const newHistory = state.history ? { ...state.history } : { ...INITIAL_HISTORY };
                 let newRecords = { ...state.records };
 
                 if (data.bp) {
@@ -117,6 +137,31 @@ export const useHealthStore = create<HealthState>()(
 
                 return { history: newHistory, records: newRecords };
             }),
+            medications: [
+                { id: "1", name: "Amlodipine", dosage: "5mg", time: "08:00 AM", frequency: "Daily", status: "active", startDate: new Date().toISOString(), addedBy: "family", color: "#6E5BFF" },
+                { id: "2", name: "Metformin", dosage: "500mg", time: "01:00 PM", frequency: "Daily", status: "active", startDate: new Date().toISOString(), addedBy: "family", color: "#3BB273" },
+                { id: "3", name: "Atorvastatin", dosage: "10mg", time: "08:00 PM", frequency: "Daily", status: "active", startDate: new Date().toISOString(), addedBy: "family", color: "#FFB800" },
+            ],
+            addMedication: (med) => set((state) => ({
+                medications: [
+                    ...state.medications,
+                    {
+                        ...med,
+                        id: Math.random().toString(36).substr(2, 9),
+                        status: med.addedBy === 'family' ? 'active' : 'pending_review',
+                        startDate: new Date().toISOString(),
+                    }
+                ]
+            })),
+            updateMedicationStatus: (id, status) => set((state) => ({
+                medications: state.medications.map(m => m.id === id ? { ...m, status } : m)
+            })),
+            requestRefill: (id) => set((state) => ({
+                medications: state.medications.map(m => m.id === id ? { ...m, status: 'refill_requested' } : m)
+            })),
+            toggleMedicationTaken: (id) => set((state) => ({
+                medications: state.medications.map(m => m.id === id ? { ...m, takenToday: !m.takenToday } : m)
+            })),
         }),
         {
             name: 'enlivo-health-storage',

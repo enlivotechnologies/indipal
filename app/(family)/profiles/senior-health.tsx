@@ -9,9 +9,10 @@ import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get("window");
-const BRAND_PURPLE = '#6E5BFF';
+const FAMILY_ORANGE = '#F59E0B';
+const HEALTH_INDIGO = '#6366F1';
 
-export default function HealthDashboard() {
+export default function SeniorHealthReport() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { history, records } = useHealthStore();
@@ -39,14 +40,6 @@ export default function HealthDashboard() {
             temperature: seed('temperature') as any,
         };
     }, [history]);
-
-    const handleTabPress = (tab: string) => {
-        if (tab === 'Health') return; // Already here
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        if (tab === 'Home') router.replace('/(senior)/home');
-        if (tab === 'Services') router.replace('/(senior)/services');
-        if (tab === 'Video') router.replace('/(senior)/video');
-    };
 
     const getBPStatus = (sys: number) => {
         if (!sys) return "No Data";
@@ -89,31 +82,6 @@ export default function HealthDashboard() {
             dataArrays = [dataArrays[0], dataArrays[0]];
         }
 
-        const ensureVariance = (arr: number[]) => {
-            if (arr.length <= 1) return arr;
-            let min = Math.min(...arr);
-            let max = Math.max(...arr);
-            if (Math.abs(max - min) < 0.1) {
-                let newArr = [...arr];
-                newArr[0] += 1;
-                newArr[newArr.length - 1] -= 1;
-                return newArr;
-            }
-            return arr;
-        };
-
-        if (dataArrays.length > 0) {
-            if (typeof dataArrays[0] === 'number') {
-                dataArrays = ensureVariance(dataArrays.map(Number)) as any;
-            } else if (Array.isArray(dataArrays[0])) {
-                let sys = dataArrays.map((a: any) => Number(a[0]));
-                let dia = dataArrays.map((a: any) => Number(a[1]));
-                let vSys = ensureVariance(sys);
-                let vDia = ensureVariance(dia);
-                dataArrays = dataArrays.map((_, i) => [vSys[i], vDia[i]]);
-            }
-        }
-
         return { labels, dataArrays };
     };
 
@@ -131,15 +99,21 @@ export default function HealthDashboard() {
                 ]}
                 className="px-6 flex-row justify-between items-center bg-white"
             >
-                <View>
-                    <Text className="text-xs font-bold text-indigo-400 uppercase tracking-widest">EnlivoCare</Text>
-                    <Text className="text-2xl font-black text-gray-900">Health Stats</Text>
-                </View>
                 <TouchableOpacity
                     onPress={() => router.back()}
-                    className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center border border-indigo-100"
+                    className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
                 >
-                    <Ionicons name="chevron-back" size={20} color={BRAND_PURPLE} />
+                    <Ionicons name="chevron-back" size={20} color="#1F2937" />
+                </TouchableOpacity>
+                <View className="items-center">
+                    <Text className="text-xl font-black text-gray-900">Health Report</Text>
+                    <Text className="text-[10px] font-bold text-orange-500 uppercase tracking-[3px]">Senior Vitality Index</Text>
+                </View>
+                <TouchableOpacity
+                    onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)}
+                    className="w-10 h-10 bg-orange-50 rounded-xl items-center justify-center border border-orange-100"
+                >
+                    <Ionicons name="share-outline" size={20} color={FAMILY_ORANGE} />
                 </TouchableOpacity>
             </View>
 
@@ -148,10 +122,10 @@ export default function HealthDashboard() {
                 className="flex-1"
                 contentContainerStyle={{
                     paddingHorizontal: 24,
-                    paddingBottom: insets.bottom + 120
+                    paddingBottom: insets.bottom + 40
                 }}
             >
-                {/* Vitals Grid - Precision Luxury Cards */}
+                {/* Vitals Grid */}
                 <View className="flex-row flex-wrap justify-between mt-8">
                     <VitalCard
                         label="Blood Pressure"
@@ -191,8 +165,8 @@ export default function HealthDashboard() {
                     />
                 </View>
 
-                {/* Filter Bar - High Stability Implementation */}
-                <Animated.View entering={FadeInUp.delay(450)} className="flex-row justify-between mt-8 mb-6 bg-indigo-50/50 p-1.5 rounded-[20px] border border-indigo-100/50">
+                {/* Filter Bar */}
+                <Animated.View entering={FadeInUp.delay(450)} className="flex-row justify-between mt-8 mb-6 bg-orange-50/50 p-1.5 rounded-[20px] border border-orange-100/50">
                     {['Daily', 'Weekly', 'Monthly'].map((f) => {
                         const isActive = filter === f;
                         return (
@@ -204,14 +178,14 @@ export default function HealthDashboard() {
                                 }}
                                 style={{
                                     backgroundColor: isActive ? 'white' : 'transparent',
-                                    borderColor: isActive ? '#E0E7FF' : 'transparent',
+                                    borderColor: isActive ? '#FFEDD5' : 'transparent',
                                     borderWidth: isActive ? 1 : 0,
                                     shadowOpacity: isActive ? 0.05 : 0,
                                 }}
                                 className="flex-1 items-center py-3 rounded-[15px]"
                             >
                                 <Text
-                                    style={{ color: isActive ? '#4F46E5' : '#9CA3AF' }}
+                                    style={{ color: isActive ? FAMILY_ORANGE : '#9CA3AF' }}
                                     className="text-[10px] font-black uppercase tracking-[2px]"
                                 >
                                     {f}
@@ -241,9 +215,7 @@ export default function HealthDashboard() {
                             style={{ borderRadius: 16 }}
                         />
                     </Animated.View>
-                ) : (
-                    <EmptyGraph label="Blood Pressure" />
-                )}
+                ) : null}
 
                 {sugarChart ? (
                     <Animated.View entering={FadeInUp.delay(550).duration(600)} className="bg-white rounded-[32px] p-4 border border-gray-100 shadow-sm mb-6">
@@ -260,9 +232,7 @@ export default function HealthDashboard() {
                             style={{ borderRadius: 16 }}
                         />
                     </Animated.View>
-                ) : (
-                    <EmptyGraph label="Blood Sugar" />
-                )}
+                ) : null}
 
                 {hrChart ? (
                     <Animated.View entering={FadeInUp.delay(600).duration(600)} className="bg-white rounded-[32px] p-4 border border-gray-100 shadow-sm mb-6">
@@ -270,7 +240,7 @@ export default function HealthDashboard() {
                         <LineChart
                             data={{
                                 labels: hrChart.labels,
-                                datasets: [{ data: hrChart.dataArrays as number[], color: () => BRAND_PURPLE }]
+                                datasets: [{ data: hrChart.dataArrays as number[], color: () => HEALTH_INDIGO }]
                             }}
                             width={width - 80}
                             height={160}
@@ -281,46 +251,22 @@ export default function HealthDashboard() {
                     </Animated.View>
                 ) : null}
 
-                {/* Medical Reports */}
-                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mt-12 mb-6 ml-1">Medical Reports</Text>
-                <Animated.View entering={FadeInUp.delay(600).duration(600)} className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100 flex-row items-center">
+                {/* Medical Reports Snapshot */}
+                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mt-12 mb-6 ml-1">Latest Medical Reports</Text>
+                <Animated.View entering={FadeInUp.delay(600).duration(600)} className="bg-orange-50 p-6 rounded-[32px] border border-orange-100 flex-row items-center mb-10">
                     <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm">
-                        <Ionicons name="document-text" size={24} color={BRAND_PURPLE} />
+                        <Ionicons name="document-text" size={24} color={FAMILY_ORANGE} />
                     </View>
                     <View className="ml-5 flex-1">
-                        <Text className="text-indigo-900 font-bold text-base">Lipid Profile Test</Text>
-                        <Text className="text-indigo-500 text-[10px] font-black uppercase tracking-widest mt-1">Added 22 Feb 2024</Text>
+                        <Text className="text-gray-900 font-bold text-base">Lipid Profile Test</Text>
+                        <Text className="text-orange-500 text-[10px] font-black uppercase tracking-widest mt-1">22 Feb 2024</Text>
                     </View>
-                    <TouchableOpacity className="w-10 h-10 bg-white rounded-xl items-center justify-center border border-indigo-100">
-                        <Ionicons name="download-outline" size={20} color={BRAND_PURPLE} />
+                    <TouchableOpacity className="w-10 h-10 bg-white rounded-xl items-center justify-center border border-orange-100">
+                        <Ionicons name="eye-outline" size={20} color={FAMILY_ORANGE} />
                     </TouchableOpacity>
                 </Animated.View>
 
-                {/* Performance CTA */}
-                <TouchableOpacity
-                    onPress={() => router.push('/(senior)/add-health' as any)}
-                    style={styles.seniorButtonPrimary}
-                    className="mt-6 bg-indigo-600 h-16 rounded-[24px] flex-row items-center justify-center gap-x-3 shadow-xl shadow-indigo-200"
-                >
-                    <Ionicons name="add-circle" size={22} color="white" />
-                    <Text className="text-white font-black text-sm uppercase tracking-widest">Add Health Data</Text>
-                </TouchableOpacity>
-
             </ScrollView>
-
-            {/* Custom Floating Bottom Bar */}
-            <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
-                className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
-                style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-            >
-                <View style={styles.tabBar} className="bg-gray-900/95 flex-row justify-between items-center h-16 rounded-[28px] px-3 shadow-2xl">
-                    <TabButton icon="home" label="Home" active={false} onPress={() => handleTabPress('Home')} />
-                    <TabButton icon="grid" label="Services" active={false} onPress={() => handleTabPress('Services')} />
-                    <TabButton icon="heart" label="Health" active={true} onPress={() => handleTabPress('Health')} />
-                    <TabButton icon="videocam" label="Video" active={false} onPress={() => handleTabPress('Video')} />
-                </View>
-            </Animated.View>
         </View>
     );
 }
@@ -329,7 +275,7 @@ function VitalCard({ label, value, unit, status, color, icon, delay }: any) {
     return (
         <Animated.View
             entering={FadeInUp.delay(delay).duration(600)}
-            className="bg-white w-[48%] rounded-[32px] p-6 mb-5 border-2 border-indigo-50 shadow-sm"
+            className="bg-white w-[48%] rounded-[32px] p-6 mb-5 border-2 border-gray-50 shadow-sm"
             style={{
                 shadowColor: color,
                 shadowOffset: { width: 0, height: 4 },
@@ -353,31 +299,10 @@ function VitalCard({ label, value, unit, status, color, icon, delay }: any) {
     );
 }
 
-function EmptyGraph({ label }: { label: string }) {
-    return (
-        <Animated.View entering={FadeInUp.delay(500).duration(600)} className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm mb-6 items-center justify-center min-h-[160px]">
-            <Ionicons name="bar-chart-outline" size={32} color="#D1D5DB" />
-            <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mt-4">No {label} Data</Text>
-        </Animated.View>
-    );
-}
-
-function TabButton({ icon, label, active, onPress }: any) {
-    return (
-        <TouchableOpacity
-            onPress={onPress}
-            className={`flex-row items-center px-4 py-2 rounded-2xl ${active ? 'bg-indigo-600' : ''}`}
-        >
-            <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
-            {active && <Text className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
-        </TouchableOpacity>
-    );
-}
-
 const chartConfig = {
     backgroundGradientFrom: "#FFFFFF",
     backgroundGradientTo: "#FFFFFF",
-    color: (opacity = 1) => `rgba(99, 102, 241, ${opacity})`,
+    color: (opacity = 1) => `rgba(245, 158, 11, ${opacity})`,
     strokeWidth: 3,
     barPercentage: 0.5,
     useShadowColorFromDataset: false,
@@ -385,11 +310,11 @@ const chartConfig = {
     propsForLabels: {
         fontSize: 10,
         fontWeight: '900',
-        fill: '#6366F1'
+        fill: '#F59E0B'
     },
     propsForBackgroundLines: {
         strokeWidth: 1,
-        stroke: '#EEF2FF'
+        stroke: '#FFF7ED'
     }
 };
 
@@ -397,15 +322,5 @@ const styles = StyleSheet.create({
     header: {
         borderBottomWidth: 1,
         borderBottomColor: '#F3F4F6',
-    },
-    tabBar: {
-        backgroundColor: 'rgba(17, 24, 39, 0.95)',
-    },
-    seniorButtonPrimary: {
-        shadowColor: BRAND_PURPLE,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.25,
-        shadowRadius: 15,
-        elevation: 10,
     }
 });

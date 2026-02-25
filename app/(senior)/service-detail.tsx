@@ -1,4 +1,3 @@
-import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -6,6 +5,7 @@ import { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import useServiceStore from '../../store/serviceStore';
 
 export default function GenericSeniorServiceScreen() {
     const { title, icon, color } = useLocalSearchParams();

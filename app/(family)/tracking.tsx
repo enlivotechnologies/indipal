@@ -3,7 +3,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import { Dimensions, Image, Linking, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
@@ -177,21 +177,12 @@ function TabButton({ icon, label, active, onPress }: { icon: any; label: string;
 }
 
 function PulseMarker({ color, label }: { color: string; label: string }) {
-    const pulseStyle = useAnimatedStyle(() => ({
-        transform: [{ scale: withRepeat(withSequence(withTiming(1.5, { duration: 1500 }), withTiming(1, { duration: 1500 })), -1) }],
-        opacity: withRepeat(withTiming(0, { duration: 1500 }), -1),
-    }));
-
     return (
         <View className="items-center">
             <View className="bg-white px-3 py-1 rounded-full shadow-sm mb-2 border border-gray-100">
                 <Text className="text-[10px] font-bold text-gray-800">{label}</Text>
             </View>
             <View className="items-center justify-center">
-                <Animated.View
-                    style={[pulseStyle, { backgroundColor: color }]}
-                    className="w-14 h-14 rounded-full absolute"
-                />
                 <View
                     style={{ backgroundColor: color }}
                     className="w-5 h-5 rounded-full border-4 border-white shadow-lg"

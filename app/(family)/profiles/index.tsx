@@ -339,6 +339,16 @@ export default function FamilyProfileScreen() {
                   <TouchableOpacity
                     onPress={() => {
                       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      router.push('/(family)/profiles/senior-health');
+                    }}
+                    className="flex-row items-center justify-center flex-1 bg-indigo-50 py-4 rounded-2xl border border-indigo-100"
+                  >
+                    <Ionicons name="pulse-outline" size={16} color="#6366F1" className="mr-2" />
+                    <Text className="text-indigo-600 text-[10px] font-black uppercase tracking-widest">Health</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                       setShowAuditLogs(true);
                     }}
                     className="flex-row items-center justify-center flex-1 bg-gray-50 py-4 rounded-2xl border border-gray-100"
@@ -348,10 +358,9 @@ export default function FamilyProfileScreen() {
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium)}
-                    className="flex-row items-center justify-center flex-1 bg-red-50 py-4 rounded-2xl border border-red-100"
+                    className="flex-row items-center justify-center w-12 bg-red-50 py-4 rounded-2xl border border-red-100"
                   >
-                    <Ionicons name="trash-outline" size={16} color="#EF4444" className="mr-2" />
-                    <Text className="text-red-600 text-[10px] font-black uppercase tracking-widest">Unlink</Text>
+                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
                   </TouchableOpacity>
                 </View>
               </View>

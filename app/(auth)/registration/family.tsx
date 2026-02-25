@@ -77,7 +77,7 @@ export default function RegisterFamily() {
                     <View className="flex-row items-center mb-6">
                         <TouchableOpacity onPress={() => {
                             if (step > 1) { prevStep(); }
-                            else { router.canGoBack() ? router.back() : router.replace('/(auth)/otp-verify'); }
+                            else { router.canGoBack() ? router.back() : router.replace('/(auth)/otp-verify' as any); }
                         }}>
                             <Ionicons name="arrow-back" size={24} color="#1F2937" />
                         </TouchableOpacity>
@@ -121,7 +121,7 @@ export default function RegisterFamily() {
                         {step === 2 && (
                             <Animated.View entering={FadeInRight} exiting={FadeOutLeft}>
                                 <Text className="text-2xl font-bold text-gray-900 mb-2">Parent Details</Text>
-                                <Text className="text-gray-500 mb-6">The "Connection Keys" to link accounts.</Text>
+                                <Text className="text-gray-500 mb-6">The &quot;Connection Keys&quot; to link accounts.</Text>
 
                                 <View className="mb-8">
                                     <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">How many parents?</Text>

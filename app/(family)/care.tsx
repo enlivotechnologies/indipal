@@ -128,7 +128,6 @@ export default function CareHubScreen() {
 
                 {/* Extended Services */}
 
-
             </ScrollView>
 
             {/* Custom Floating Bottom Bar */}

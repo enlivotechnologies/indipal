@@ -1,3 +1,4 @@
+import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -101,6 +102,8 @@ export default function HouseHelpScreen() {
         return unsubscribe;
     }, [navigation]);
 
+    const { addNotification } = useErrandStore();
+
     const handleConfirm = () => {
         if (!selectedService) {
             Alert.alert("Selection Required", "Please select a service specialization.");
@@ -113,6 +116,13 @@ export default function HouseHelpScreen() {
             setOrderStatus('confirmed');
             setIsConfirmed(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+            // Notify Senior
+            addNotification({
+                title: 'Domestic Help Secured',
+                message: `Your family has arranged ${selectedService.title} for you. Staff will arrive shortly.`,
+                type: 'service',
+            });
         }, 3000);
     };
 

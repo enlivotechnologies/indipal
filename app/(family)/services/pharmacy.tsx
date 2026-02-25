@@ -1,3 +1,4 @@
+import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -188,6 +189,8 @@ export default function PharmacyOrderingScreen() {
         }, 2000);
     };
 
+    const { addNotification } = useErrandStore();
+
     const handleConfirm = () => {
         if (cartTotal === 0) {
             Alert.alert("Selection Required", "Please add at least one item to your cart.");
@@ -201,6 +204,13 @@ export default function PharmacyOrderingScreen() {
             setOrderStatus('confirmed');
             setIsConfirmed(true);
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+            // Notify Senior
+            addNotification({
+                title: 'Medicines Ordered',
+                message: `Your family has secured your medications. Priya Verma will deliver them shortly.`,
+                type: 'service',
+            });
         }, 3000);
     };
 

@@ -1,3 +1,4 @@
+import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -129,6 +130,8 @@ export default function GroceryOrderScreen() {
 
     const cartTotal = GROCERY_ITEMS.reduce((sum, item) => sum + (item.price * (cart[item.id] || 0)), 0);
 
+    const { addNotification } = useErrandStore();
+
     const handleConfirm = () => {
         setOrderStatus('paying');
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -136,6 +139,13 @@ export default function GroceryOrderScreen() {
         setTimeout(() => {
             setOrderStatus('confirmed');
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+            // Notify Senior
+            addNotification({
+                title: 'Grocery Order Placed',
+                message: `Your family has ordered essentials for you. Arjun Singh will deliver them shortly.`,
+                type: 'service',
+            });
         }, 3000);
     };
 

@@ -1,12 +1,15 @@
 import { useAuthStore } from '@/store/authStore';
-import { useHealthStore } from '@/store/healthStore';
+import { useErrandStore } from '@/store/errandStore';
+import { useGigStore } from '@/store/gigStore';
+import { Medication, useHealthStore } from '@/store/healthStore';
 import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
-import { Dimensions, Image, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { Easing, FadeInUp, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import React, { useState } from 'react';
+import { Alert, Dimensions, Image, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import Animated, { Easing, FadeInUp, useAnimatedStyle, withRepeat, withSequence, withTiming, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
@@ -16,23 +19,87 @@ export default function FamilyHomeScreen() {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const user = useAuthStore((state) => state.user);
-  const healthRecords = useHealthStore((state) => state.records);
+  const { records: healthRecords, medications, addMedication, updateMedicationStatus } = useHealthStore();
   const orders = useServiceStore((state) => state.orders);
+  const { notifications, sosAlerts, resolveSOS } = useErrandStore();
+  const { gigs, approveGig, addGig } = useGigStore();
+
+  const activeSOS = sosAlerts.find(a => a.status === 'active');
+  const pendingGrocery = gigs.find(g => g.status === 'pending_approval' && g.category === 'Grocery');
 
   const pendingOrder = orders.filter(o => o.status === 'Pending').sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
+  const unreadNotifications = notifications.filter(n => !n.read).length;
 
-  const activeTab = pathname.includes('home') ? 'Home' :
-    pathname.includes('care') ? 'Care' :
-      pathname.includes('tracking') ? 'Track' :
-        pathname.includes('chat') ? 'Connect' : 'Home';
+  const [approvalModal, setApprovalModal] = useState(false);
+  const [budget, setBudget] = useState('500');
+
+  const [plusMenuOpen, setPlusMenuOpen] = useState(false);
+  const [addMedModal, setAddMedModal] = useState(false);
+  const [refillModal, setRefillModal] = useState(false);
+
+  // Form State
+  const [medName, setMedName] = useState('');
+  const [medDosage, setMedDosage] = useState('');
+  const [medFreq, setMedFreq] = useState('Daily');
+
+  const handleAddMedicine = () => {
+    if (!medName || !medDosage) {
+      Alert.alert('Error', 'Please fill name and dosage');
+      return;
+    }
+
+    addMedication({
+      name: medName,
+      dosage: medDosage,
+      frequency: medFreq,
+      time: '08:00 AM',
+      addedBy: 'family',
+      color: '#6366F1',
+    });
+
+    setMedName('');
+    setMedDosage('');
+    setAddMedModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Success', 'Medicine added to Senior Profile');
+  };
 
   // Simulated Handshake Data
   const linkedSenior = user?.parentsDetails?.[0] || {
+    id: 'senior_1',
     name: 'Ramesh Chandra',
     phone: '+91 98765 43210',
     address: 'Sector 4, HSR Layout, Bengaluru',
     hasSmartphone: false
   };
+
+  const handleRefillImmediately = (med: Medication) => {
+    addGig({
+      seniorId: linkedSenior.id || 'senior_1',
+      seniorName: linkedSenior.name,
+      familyId: user?.id || 'family_1',
+      status: 'pending_approval',
+      category: 'Medicine',
+      items: [{ id: Math.random().toString(), name: `Refill: ${med.name}`, quantity: '1 Pack', checked: false }],
+      type: 'Refill',
+      medicationDetails: {
+        name: med.name,
+        dosage: med.dosage,
+        frequency: med.frequency
+      }
+    });
+
+    setRefillModal(false);
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    Alert.alert('Errand Created', 'A refill request has been sent to nearby Pals.');
+  };
+
+  const pendingMedReview = medications.find(m => m.status === 'pending_review');
+
+  const activeTab = pathname.includes('home') ? 'Home' :
+    pathname.includes('care') ? 'Care' :
+      pathname.includes('tracking') ? 'Track' :
+        pathname.includes('chat') ? 'Connect' : 'Home';
 
   const nearbyPals = [
     { id: '1', name: 'Arjun Singh', rating: 4.9, experience: '5 yrs', image: 'https://i.pravatar.cc/150?u=arjun', verified: true },
@@ -64,6 +131,48 @@ export default function FamilyHomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
+      {/* SOS Lively Alert Overlay */}
+      {activeSOS && (
+        <Animated.View entering={FadeInUp} className="bg-red-600 mt-2 mx-4 rounded-3xl overflow-hidden shadow-2xl shadow-red-200">
+          <LinearGradient colors={['#DC2626', '#B91C1C']} className="p-5">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1">
+                <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center border border-white/30">
+                  <Ionicons name="alert-circle" size={28} color="white" />
+                </View>
+                <View className="ml-4 flex-1">
+                  <Text className="text-white font-black text-lg">EMERGENCY SOS</Text>
+                  <Text className="text-white/80 text-[10px] font-bold uppercase tracking-widest">{activeSOS.seniorName} Needs help!</Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  resolveSOS(activeSOS.id);
+                }}
+                className="bg-white/20 px-4 py-2 rounded-xl border border-white/30"
+              >
+                <Text className="text-white font-black text-[10px] uppercase">Got it</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View className="mt-4 pt-4 border-t border-white/10 flex-row items-center justify-between">
+              <View className="flex-row items-center">
+                <Ionicons name="location" size={14} color="white" />
+                <Text className="text-white/90 text-[11px] font-bold ml-1.5">{activeSOS.location}</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => Linking.openURL(`tel:${linkedSenior.phone}`)}
+                className="bg-white px-5 py-2.5 rounded-full flex-row items-center"
+              >
+                <Ionicons name="call" size={14} color="#DC2626" />
+                <Text className="text-red-700 font-black text-[10px] uppercase tracking-widest ml-1.5">Emergency Call</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </Animated.View>
+      )}
+
       {/* Header - PERSISTENT & RESPONSIVE */}
       <View
         style={[
@@ -88,7 +197,7 @@ export default function FamilyHomeScreen() {
             className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center border border-gray-100"
           >
             <Ionicons name="notifications-outline" size={20} color="#1F2937" />
-            {(pendingOrder || orders.length > 0) && (
+            {(pendingOrder || unreadNotifications > 0) && (
               <View className="absolute top-2.5 right-2.5 w-1.5 h-1.5 bg-orange-500 rounded-full border border-white" />
             )}
           </TouchableOpacity>
@@ -168,7 +277,64 @@ export default function FamilyHomeScreen() {
             </TouchableOpacity>
           </View>
 
-          {pendingOrder ? (
+          {activeSOS ? null : pendingMedReview ? (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                Alert.alert(
+                  'Review Medicine',
+                  `${linkedSenior.name} added ${pendingMedReview.name} (${pendingMedReview.dosage}). Confirm addition?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Confirm', onPress: () => updateMedicationStatus(pendingMedReview.id, 'active') }
+                  ]
+                );
+              }}
+              className="bg-amber-50 p-6 rounded-[24px] border-2 border-amber-400 shadow-xl shadow-amber-100 flex-row items-center mb-4"
+            >
+              <View className="w-12 h-12 rounded-2xl items-center justify-center bg-amber-100 border border-amber-200">
+                <Ionicons name="medical" size={24} color="#D97706" />
+              </View>
+              <View className="flex-1 ml-4 pr-4">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-amber-900 font-bold text-sm">Medicine Review</Text>
+                  <View className="bg-amber-500 px-2 py-0.5 rounded-full">
+                    <Text className="text-white text-[8px] font-black uppercase tracking-widest font-nunito">Verify Now</Text>
+                  </View>
+                </View>
+                <Text className="text-amber-800 text-[11px] leading-4" numberOfLines={2}>
+                  Review the prescription for {pendingMedReview.name} before it&apos;s added to schedule.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#D97706" />
+            </TouchableOpacity>
+          ) : null}
+
+          {pendingGrocery ? (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                setApprovalModal(true);
+              }}
+              className="bg-white p-6 rounded-[24px] border-2 border-orange-400 shadow-xl shadow-orange-100 flex-row items-center"
+            >
+              <View className="w-12 h-12 rounded-2xl items-center justify-center bg-orange-100 border border-orange-200">
+                <Ionicons name="cart" size={24} color="#F59E0B" />
+              </View>
+              <View className="flex-1 ml-4 pr-4">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-gray-900 font-bold text-sm">Grocery Request</Text>
+                  <View className="bg-orange-500 px-2 py-0.5 rounded-full">
+                    <Text className="text-white text-[8px] font-black uppercase">Review Now</Text>
+                  </View>
+                </View>
+                <Text className="text-gray-500 text-[11px] leading-4" numberOfLines={2}>
+                  {pendingGrocery.seniorName} has requested {pendingGrocery.items.length} items. Tap to approve and assign a Pal.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
+            </TouchableOpacity>
+          ) : pendingOrder ? (
             <TouchableOpacity
               onPress={() => router.push({ pathname: '/(family)/account/notifications', params: { filter: 'senior' } } as any)}
               className="bg-white p-6 rounded-[24px] border-2 border-orange-100 shadow-lg flex-row items-center"
@@ -207,27 +373,37 @@ export default function FamilyHomeScreen() {
           <TouchableOpacity
             onPress={() => router.push('/(family)/services/errands')}
             activeOpacity={0.9}
-            className="bg-gray-900 p-8 rounded-[15px] shadow-2xl shadow-black/20"
+            className="h-44 rounded-[24px] overflow-hidden shadow-2xl shadow-black/20 relative bg-gray-900"
           >
-            <View className="flex-row items-center justify-between mb-6">
-              <View>
-                <Text className="text-white font-black text-2xl">Today's Errands</Text>
-                <Text className="text-white/50 text-[10px] uppercase font-bold tracking-widest mt-1">Managed by Arjun Singh</Text>
+            <Image
+              source={{ uri: 'https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?auto=format&fit=crop&q=80&w=400' }}
+              className="absolute inset-0 w-full h-full opacity-40"
+              resizeMode="cover"
+            />
+            <LinearGradient
+              colors={['transparent', 'rgba(0,0,0,0.8)']}
+              className="absolute inset-0 p-8 justify-end"
+            >
+              <View className="flex-row items-center justify-between mb-2">
+                <View>
+                  <Text className="text-white font-black text-2xl">Today&apos;s Errands</Text>
+                  <Text className="text-white/50 text-[10px] uppercase font-bold tracking-widest mt-1">Managed by Arjun Singh</Text>
+                </View>
+                <View className="bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                  <Text className="text-emerald-400 text-[10px] font-black uppercase">2/3 Done</Text>
+                </View>
               </View>
-              <View className="bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
-                <Text className="text-emerald-400 text-[10px] font-black uppercase">2/3 Done</Text>
-              </View>
-            </View>
 
-            <View className="flex-row items-center gap-x-3">
-              <View className="flex-1 bg-white/5 h-12 rounded-2xl px-4 flex-row items-center">
-                <View className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3" />
-                <Text className="text-white/80 text-[10px] font-black uppercase tracking-widest">Active: Grocery Pickup</Text>
+              <View className="flex-row items-center gap-x-3">
+                <View className="flex-1 bg-white/10 h-10 rounded-xl px-4 flex-row items-center">
+                  <View className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-3" />
+                  <Text className="text-white/80 text-[10px] font-black uppercase tracking-widest">Active: Grocery Pickup</Text>
+                </View>
+                <View className="w-10 h-10 bg-white/20 rounded-xl items-center justify-center">
+                  <Ionicons name="flash" size={16} color="#3B82F6" />
+                </View>
               </View>
-              <View className="w-12 h-12 bg-white/10 rounded-2xl items-center justify-center">
-                <Ionicons name="flash" size={18} color="#3B82F6" />
-              </View>
-            </View>
+            </LinearGradient>
           </TouchableOpacity>
         </Animated.View>
 
@@ -338,26 +514,19 @@ export default function FamilyHomeScreen() {
         <Animated.View entering={FadeInUp.delay(400).duration(600).easing(Easing.out(Easing.quad))} className="mb-10">
           <View className="flex-row items-center justify-between mb-4 px-1">
             <Text className="text-xs font-black text-gray-400 uppercase tracking-widest">Senior Health Status</Text>
-            <View className="bg-emerald-100 px-2 py-1 rounded-[24px]">
-              <Text className="text-[8px] text-emerald-600 font-bold uppercase">Live Data</Text>
-            </View>
+            <TouchableOpacity onPress={() => router.push('/(family)/profiles/senior-health' as any)} className="bg-emerald-100 px-3 py-1.5 rounded-[24px] border border-emerald-200">
+              <Text className="text-[9px] text-emerald-700 font-black uppercase tracking-widest">Full Report</Text>
+            </TouchableOpacity>
           </View>
 
-          <View className="flex-row flex-wrap gap-4 rounded-[15px]">
-            <HealthStatusCard
-              icon="happy"
-              label="Mood"
-              value={healthRecords.mood?.type || 'Not Logged'}
-              color="#A855F7"
-              delay={0}
-            />
+          <View className="flex-row flex-wrap justify-between gap-y-4">
             <HealthStatusCard
               icon="heart"
               label="BP"
               value={healthRecords.bloodPressure ? `${healthRecords.bloodPressure.systolic}/${healthRecords.bloodPressure.diastolic}` : '--/--'}
               unit="mmHg"
               color="#EF4444"
-              delay={100}
+              delay={0}
             />
             <HealthStatusCard
               icon="water"
@@ -365,14 +534,22 @@ export default function FamilyHomeScreen() {
               value={healthRecords.bloodSugar?.level.toString() || '--'}
               unit="mg/dL"
               color="#3B82F6"
+              delay={100}
+            />
+            <HealthStatusCard
+              icon="pulse"
+              label="Heart"
+              value={healthRecords.heartRate?.bpm.toString() || '--'}
+              unit="BPM"
+              color="#6366F1"
               delay={200}
             />
             <HealthStatusCard
-              icon="tint"
-              label="Hydration"
-              value={`${healthRecords.water?.glasses || 0}/${healthRecords.water?.goal || 8}`}
-              unit="Glasses"
-              color="#06B6D4"
+              icon="thermometer"
+              label="Temp"
+              value={healthRecords.temperature?.value.toString() || '--'}
+              unit={`°${healthRecords.temperature?.unit || 'F'}`}
+              color="#EC4899"
               delay={300}
             />
           </View>
@@ -491,6 +668,150 @@ export default function FamilyHomeScreen() {
         </Animated.View>
       </ScrollView>
 
+      {/* Dual-Action '+' Menu */}
+      {plusMenuOpen && (
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setPlusMenuOpen(false)}
+          className="absolute inset-0 bg-black/40 z-[100]"
+        >
+          <Animated.View
+            entering={ZoomIn.duration(300)}
+            exiting={ZoomOut.duration(200)}
+            className="absolute bottom-40 right-8 gap-y-4"
+          >
+            <TouchableOpacity
+              onPress={() => {
+                setPlusMenuOpen(false);
+                setRefillModal(true);
+              }}
+              style={{ backgroundColor: '#F59E0B' }}
+              className="px-6 py-4 rounded-[20px] shadow-lg flex-row items-center border border-white/20"
+            >
+              <Ionicons name="repeat" size={20} color="white" />
+              <Text className="text-white font-nunito-bold ml-3 uppercase tracking-widest text-xs">Request Refill</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setPlusMenuOpen(false);
+                setAddMedModal(true);
+              }}
+              style={{ backgroundColor: '#FEF3C7' }}
+              className="px-6 py-4 rounded-[20px] shadow-lg flex-row items-center border border-white/20"
+            >
+              <Ionicons name="add-circle" size={20} color="#D97706" />
+              <Text className="text-[#D97706] font-nunito-bold ml-3 uppercase tracking-widest text-xs">Add New Medicine</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </TouchableOpacity>
+      )}
+
+      {/* Main FAB for '+' */}
+      <TouchableOpacity
+        activeOpacity={0.9}
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          setPlusMenuOpen(!plusMenuOpen);
+        }}
+        style={{ backgroundColor: '#F59E0B' }} // Enlivo Orange
+        className="absolute bottom-32 right-8 w-16 h-16 rounded-[24px] items-center justify-center shadow-xl shadow-orange-300 z-[101]"
+      >
+        <Ionicons name={plusMenuOpen ? "close" : "add"} size={plusMenuOpen ? 28 : 32} color="white" />
+      </TouchableOpacity>
+
+      {/* Refill Modal */}
+      <Modal visible={refillModal} transparent animationType="slide">
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-[40px] p-8 max-h-[80%]">
+            <View className="flex-row justify-between items-center mb-6">
+              <View>
+                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mb-1">Stock Refill</Text>
+                <Text className="text-gray-900 font-nunito-bold text-2xl">Select Medicine</Text>
+              </View>
+              <TouchableOpacity onPress={() => setRefillModal(false)} className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
+                <Ionicons name="close" size={24} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {medications.filter(m => m.status === 'active').map((med) => (
+                <TouchableOpacity
+                  key={med.id}
+                  onPress={() => handleRefillImmediately(med)}
+                  className="bg-gray-50 p-6 rounded-[28px] border border-gray-100 flex-row items-center mb-4"
+                >
+                  <View style={{ backgroundColor: med.color }} className="w-1.5 h-10 rounded-full" />
+                  <View className="ml-5 flex-1">
+                    <Text className="text-gray-900 font-nunito-bold text-lg">{med.name}</Text>
+                    <Text className="text-gray-500 text-sm">{med.dosage}</Text>
+                  </View>
+                  <View className="bg-orange-100 px-4 py-2 rounded-xl border border-orange-200">
+                    <Text className="text-orange-700 text-[10px] font-black uppercase">Refill</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Medicine Modal */}
+      <Modal visible={addMedModal} transparent animationType="slide">
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-[40px] p-8">
+            <View className="flex-row justify-between items-center mb-6">
+              <View>
+                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mb-1">Health Control</Text>
+                <Text className="text-gray-900 font-nunito-bold text-2xl">Add Medicine</Text>
+              </View>
+              <TouchableOpacity onPress={() => setAddMedModal(false)} className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
+                <Ionicons name="close" size={24} color="#1F2937" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View className="gap-y-6 mb-10">
+                <View>
+                  <Text className="text-gray-900 font-black text-xs uppercase mb-3 ml-1 tracking-widest">Medicine Name</Text>
+                  <TextInput
+                    value={medName}
+                    onChangeText={setMedName}
+                    placeholder="e.g. Telmisartan"
+                    className="bg-gray-50 p-5 rounded-2xl border border-gray-100 font-nunito-bold text-lg"
+                  />
+                </View>
+                <View className="flex-row gap-x-4">
+                  <View className="flex-1">
+                    <Text className="text-gray-900 font-black text-xs uppercase mb-3 ml-1 tracking-widest">Dosage</Text>
+                    <TextInput
+                      value={medDosage}
+                      onChangeText={setMedDosage}
+                      placeholder="e.g. 40mg"
+                      className="bg-gray-50 p-5 rounded-2xl border border-gray-100 font-nunito-bold text-lg"
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-gray-900 font-black text-xs uppercase mb-3 ml-1 tracking-widest">Freq</Text>
+                    <TouchableOpacity className="bg-gray-50 p-5 rounded-2xl border border-gray-100 items-center justify-center">
+                      <Text className="font-nunito-bold text-lg text-gray-900">{medFreq}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                onPress={handleAddMedicine}
+                className="bg-gray-900 h-20 rounded-[28px] items-center justify-center shadow-xl shadow-gray-200"
+              >
+                <Text className="text-white font-black text-lg uppercase tracking-widest">Add to Health Profile</Text>
+              </TouchableOpacity>
+              <View className="h-10" />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Custom Floating Bottom Bar */}
       <Animated.View entering={FadeInUp.delay(200).duration(600).easing(Easing.out(Easing.quad))} className="absolute bottom-0 left-0 right-0 px-6 bg-white/10" style={{ paddingBottom: Math.max(insets.bottom, 20) }}>
         <View style={styles.tabBar} className="bg-gray-900/95 flex-row items-center h-16 rounded-[28px] px-2 shadow-2xl">
@@ -500,6 +821,84 @@ export default function FamilyHomeScreen() {
           <TabButton icon="chatbubbles" label="Connect" active={activeTab === 'Connect'} onPress={() => handleTabPress('Connect')} />
         </View>
       </Animated.View>
+
+      {/* Grocery Approval Modal */}
+      <Modal
+        visible={approvalModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setApprovalModal(false)}
+      >
+        <View className="flex-1 bg-black/50 justify-end">
+          <View className="bg-white rounded-t-[40px] p-8">
+            <View className="flex-row justify-between items-center mb-8">
+              <View>
+                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mb-1">Review Request</Text>
+                <Text className="text-gray-900 font-black text-2xl">Grocery Order</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setApprovalModal(false)}
+                className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
+              >
+                <Ionicons name="close" size={20} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            {pendingGrocery && (
+              <ScrollView showsVerticalScrollIndicator={false} className="max-h-[60vh]">
+                <View className="bg-orange-50 p-6 rounded-[32px] border border-orange-100 mb-8">
+                  <Text className="text-orange-900 font-black text-xs uppercase mb-4 tracking-widest">Requested Items</Text>
+                  {pendingGrocery.items.map((item, idx) => (
+                    <View key={idx} className="flex-row items-center justify-between mb-3 last:mb-0">
+                      <View className="flex-row items-center">
+                        <View className="w-2 h-2 bg-orange-400 rounded-full mr-3" />
+                        <Text className="text-gray-800 font-bold">{item.name}</Text>
+                      </View>
+                      <Text className="text-gray-400 font-bold text-xs">{item.quantity}</Text>
+                    </View>
+                  ))}
+                </View>
+
+                <View className="mb-8">
+                  <Text className="text-gray-400 font-bold text-xs uppercase mb-4 tracking-widest ml-1">Set Max Budget (₹)</Text>
+                  <View className="flex-row items-center bg-gray-50 p-6 rounded-[24px] border border-gray-100">
+                    <Text className="text-gray-900 font-black text-xl mr-2">₹</Text>
+                    <TextInput
+                      value={budget}
+                      onChangeText={setBudget}
+                      keyboardType="numeric"
+                      className="flex-1 text-gray-900 font-black text-xl"
+                      placeholder="Enter amount"
+                    />
+                  </View>
+                </View>
+
+                <View className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100 flex-row items-center mb-8">
+                  <View className="w-10 h-10 bg-indigo-500 rounded-xl items-center justify-center">
+                    <Ionicons name="wallet" size={20} color="white" />
+                  </View>
+                  <View className="ml-4 flex-1">
+                    <Text className="text-indigo-900 font-black text-sm">Enlivo Secure Pay</Text>
+                    <Text className="text-indigo-500 font-bold text-[10px] uppercase">Garanteed from Wallet</Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    approveGig(pendingGrocery.id, { budget: parseInt(budget) });
+                    setApprovalModal(false);
+                  }}
+                  className="bg-orange-500 h-20 rounded-[28px] items-center justify-center shadow-xl shadow-orange-200"
+                >
+                  <Text className="text-white font-black text-lg uppercase tracking-widest font-nunito">Confirm Order</Text>
+                </TouchableOpacity>
+                <View className="h-10" />
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -508,17 +907,17 @@ function HealthStatusCard({ icon, label, value, unit, color, delay }: { icon: an
   return (
     <Animated.View
       entering={FadeInUp.delay(100 + delay).easing(Easing.inOut(Easing.ease))}
-      className="bg-gray-50 p-5 rounded-[32px] border border-gray-100 flex-1 min-w-[140px]"
+      className="bg-white p-5 rounded-[32px] border border-gray-100 w-[47%] shadow-sm"
     >
-      <View className="flex-row items-center mb-3">
-        <View style={{ backgroundColor: `${color}15` }} className="w-8 h-8 rounded-xl items-center justify-center">
+      <View className="flex-row items-center mb-4">
+        <View style={{ backgroundColor: `${color}10` }} className="w-8 h-8 rounded-xl items-center justify-center">
           <Ionicons name={icon} size={16} color={color} />
         </View>
         <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-3">{label}</Text>
       </View>
       <View className="flex-row items-baseline">
-        <Text className="text-xl font-black text-gray-900">{value}</Text>
-        {unit && <Text className="text-[8px] font-bold text-gray-400 ml-1 uppercase">{unit}</Text>}
+        <Text className="text-2xl font-black text-gray-900">{value}</Text>
+        {unit && <Text className="text-[9px] font-black text-gray-400 ml-1.5 uppercase">{unit}</Text>}
       </View>
     </Animated.View>
   );

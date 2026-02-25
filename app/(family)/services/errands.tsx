@@ -1,3 +1,4 @@
+import { ErrandStatus, useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,91 +8,38 @@ import { Dimensions, Image, Linking, ScrollView, StyleSheet, Text, TextInput, To
 import Animated, {
     FadeIn,
     FadeInDown,
-    Layout,
-    useAnimatedStyle,
-    withRepeat,
-    withSequence,
-    withTiming
+    Layout
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-type ErrandsStatus = 'pending' | 'in-progress' | 'completed';
-
-interface Errand {
-    id: string;
-    title: string;
-    category: 'Grocery' | 'Pharmacy' | 'Household' | 'Medical';
-    time: string;
-    status: ErrandsStatus;
-    palName?: string;
-    palId?: string;
-    palImage?: string;
-    items?: string[];
-    priority?: 'high' | 'normal';
-}
-
-const INITIAL_ERRANDS: Errand[] = [
-    {
-        id: '1',
-        title: 'Medicine Refill',
-        time: 'Today, 10:30 AM',
-        status: 'in-progress', // Changed from 'Ongoing' to match ErrandsStatus type
-        category: 'Pharmacy',
-        palName: 'Arjun Singh',
-        // palId: '3', // Removed as palId is not in Errand interface
-        palImage: 'https://i.pravatar.cc/100?u=arjun',
-        // location: 'Apollo Pharmacy, Sector 4' // Removed as location is not in Errand interface
-    },
-    {
-        id: '2',
-        title: 'Weekly Fruit & Veggies',
-        category: 'Grocery',
-        time: 'Today, 11:30 AM',
-        status: 'in-progress',
-        palName: 'Arjun Singh',
-        palId: '3',
-        palImage: 'https://i.pravatar.cc/100?u=arjun',
-        items: ['Apples', 'Bananas', 'Spinach'],
-        priority: 'high'
-    },
-];
-
 const PulseCircle = () => {
-    const style = useAnimatedStyle(() => ({
-        transform: [{ scale: withRepeat(withSequence(withTiming(1.2), withTiming(1)), -1, true) }],
-        opacity: withRepeat(withSequence(withTiming(0.4), withTiming(0.8)), -1, true),
-    }));
-
-    return <Animated.View style={[styles.pulse, style]} />;
+    return <View style={styles.pulse} />;
 };
 
 export default function ErrandsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const [errands, setErrands] = useState<Errand[]>(INITIAL_ERRANDS);
+    const { errands, addErrand } = useErrandStore();
     const [isAdding, setIsAdding] = useState(false);
     const [newTaskTitle, setNewTaskTitle] = useState('');
     const [selectedPayment, setSelectedPayment] = useState<'wallet' | 'card'>('wallet');
     const [address, setAddress] = useState('');
 
     const sortedErrands = useMemo(() => {
-        const order: Record<ErrandsStatus, number> = { 'in-progress': 0, 'pending': 1, 'completed': 2 };
+        const order: Record<ErrandStatus, number> = { 'in-progress': 0, 'pending': 1, 'completed': 2 };
         return [...errands].sort((a, b) => order[a.status] - order[b.status]);
     }, [errands]);
 
     const handleAddTask = () => {
         if (!newTaskTitle.trim()) return;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        const errand: Errand = {
-            id: Date.now().toString(),
+        addErrand({
             title: newTaskTitle,
             category: 'Household',
             time: 'ASAP',
-            status: 'pending'
-        };
-        setErrands([errand, ...errands]);
+        });
         setNewTaskTitle('');
         setIsAdding(false);
     };

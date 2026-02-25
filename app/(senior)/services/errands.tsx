@@ -7,11 +7,7 @@ import { Dimensions, Image, Linking, ScrollView, StyleSheet, Text, TextInput, To
 import Animated, {
     FadeIn,
     FadeInDown,
-    Layout,
-    useAnimatedStyle,
-    withRepeat,
-    withSequence,
-    withTiming
+    Layout
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -59,12 +55,7 @@ const INITIAL_ERRANDS: Errand[] = [
 ];
 
 const PulseCircle = () => {
-    const style = useAnimatedStyle(() => ({
-        transform: [{ scale: withRepeat(withSequence(withTiming(1.2), withTiming(1)), -1, true) }],
-        opacity: withRepeat(withSequence(withTiming(0.4), withTiming(0.8)), -1, true),
-    }));
-
-    return <Animated.View style={[styles.pulse, style]} />;
+    return <View style={styles.pulse} />;
 };
 
 export default function ErrandsScreen() {

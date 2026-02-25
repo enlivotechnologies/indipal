@@ -1,5 +1,6 @@
 import { useAuthStore } from '@/store/authStore';
 import { useBookingStore } from '@/store/bookingStore';
+import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -75,6 +76,8 @@ export default function PalProfileScreen() {
         );
     }, [bookings, palData.id, currentDay.date, selectedTimeSlot]);
 
+    const { addNotification } = useErrandStore();
+
     const handleBooking = () => {
         if (!selectedTimeSlot) return;
 
@@ -88,6 +91,13 @@ export default function PalProfileScreen() {
             day: currentDay.day,
             time: selectedTimeSlot,
             price: palData.hourlyRate
+        });
+
+        // Notify Senior
+        addNotification({
+            title: 'New Visit Scheduled',
+            message: `Your family has booked a session with ${palData.name} on ${currentDay.date} at ${selectedTimeSlot}.`,
+            type: 'service',
         });
 
         // Optional: Navigate to home or show success modal

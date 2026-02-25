@@ -1,3 +1,4 @@
+import { useErrandStore } from '@/store/errandStore';
 import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -62,6 +63,7 @@ export default function NotificationsScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { orders, updateOrderStatus } = useServiceStore();
+    const { notifications: errandNotifications, markNotificationRead } = useErrandStore();
     const [filter, setFilter] = useState<NotificationType | 'all'>('all');
     const [mockNotifications, setMockNotifications] = useState(MOCK_NOTIFICATIONS);
     const [selectedDetail, setSelectedDetail] = useState<any>(null);
@@ -81,7 +83,18 @@ export default function NotificationsScreen() {
         status: order.status
     }));
 
-    const allNotifications = [...realNotifications, ...mockNotifications];
+    const allErrandNotifications: AppNotification[] = errandNotifications.map(en => ({
+        id: en.id,
+        type: 'pal',
+        title: en.title,
+        message: en.message,
+        time: new Date(en.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isRead: en.read,
+        senderName: 'Care Pal',
+        senderImage: 'https://i.pravatar.cc/100?u=arjun'
+    }));
+
+    const allNotifications = [...realNotifications, ...allErrandNotifications, ...mockNotifications];
 
     const handleAccept = (orderId: string) => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
