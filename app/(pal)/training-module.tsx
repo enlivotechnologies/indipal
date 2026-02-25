@@ -24,14 +24,21 @@ export default function TrainingModuleScreen() {
             setCurrentStep(currentStep + 1);
         } else {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-            router.back();
+            if (router.canGoBack()) {
+                router.back();
+            } else {
+                router.replace('/(pal)/training');
+            }
         }
     };
 
     return (
         <View style={{ flex: 1, backgroundColor: 'white' }}>
             <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }]} className="px-6 flex-row items-center border-b border-gray-50">
-                <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-4">
+                <TouchableOpacity
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/training')}
+                    className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-4"
+                >
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <View className="flex-1">

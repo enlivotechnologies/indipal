@@ -20,7 +20,7 @@ export default function NotificationDetailScreen() {
         return (
             <View className="flex-1 bg-white items-center justify-center p-6">
                 <Text className="text-gray-400 font-bold">Notification not found</Text>
-                <TouchableOpacity onPress={() => router.back()} className="mt-4">
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/notifications' as any)} className="mt-4">
                     <Text className="text-emerald-600 font-black">Go Back</Text>
                 </TouchableOpacity>
             </View>
@@ -51,7 +51,10 @@ export default function NotificationDetailScreen() {
                 ]}
                 className="px-6 flex-row items-center bg-white"
             >
-                <TouchableOpacity onPress={() => router.back()} className="mr-4 w-10 h-10 bg-gray-50 rounded-xl items-center justify-center">
+                <TouchableOpacity
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/notifications' as any)}
+                    className="mr-4 w-10 h-10 bg-gray-50 rounded-xl items-center justify-center"
+                >
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <Text className="text-xl font-black text-gray-900">Message Detail</Text>
@@ -101,7 +104,7 @@ export default function NotificationDetailScreen() {
                     )}
 
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/notifications' as any)}
                         className="mt-12 bg-gray-900 py-6 rounded-[32px] items-center shadow-xl shadow-gray-200"
                     >
                         <Text className="text-white font-black uppercase tracking-widest">Back to Inbox</Text>

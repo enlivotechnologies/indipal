@@ -32,12 +32,12 @@ export default function VerificationScreen() {
 
     const handleReupload = async (type: any) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        const uri = await pickImageFromGallery();
-        if (!uri) return;
+        const asset = await pickImageFromGallery();
+        if (!asset) return;
 
         setIsReuploading(true);
         try {
-            const url = await uploadFile(uri);
+            const url = await uploadFile(asset.uri);
             const result = await uploadVerificationDoc({
                 documentType: type,
                 fileUrl: url
@@ -59,7 +59,10 @@ export default function VerificationScreen() {
         <View style={{ flex: 1, backgroundColor: 'white' }}>
             {/* Header */}
             <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }]} className="px-6 flex-row items-center border-b border-gray-50">
-                <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-4">
+                <TouchableOpacity
+                    onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/home')}
+                    className="w-10 h-10 bg-gray-50 rounded-xl items-center justify-center mr-4"
+                >
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <View>

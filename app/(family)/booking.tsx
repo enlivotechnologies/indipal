@@ -1,3 +1,4 @@
+import { useBookingStore } from '@/store/bookingStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
@@ -31,8 +32,26 @@ export default function BookingScreen() {
 
     const handleConfirm = () => {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+
+        // Requirement 1: Complete Gig creation logic
+        useBookingStore.getState().addGig({
+            title: title as string || "Care Session",
+            description: `Required ${serviceType} service for ${duration}. Address: ${address}. Special instructions: ${date} at ${time}.`,
+            dateTime: `${date} ${time}`,
+            duration: duration,
+            paymentAmount: duration === '2 hrs' ? 450 : duration === '4 hrs' ? 800 : 1500,
+            price: duration === '2 hrs' ? 450 : duration === '4 hrs' ? 800 : 1500,
+            location: { address: address || "HSR Layout, Bangalore" },
+            familyId: "FAM_USER_001",
+            userName: "Senior Member",
+            palId: "",
+            palName: "",
+            date: date,
+            day: "Day TBD", // Can be derived if needed
+            time: time,
+        });
+
         setIsConfirmed(true);
-        // In a real app, this would send a notification to the family store/API
     };
 
     const serviceOptions: ServiceType[] = ['Cleaning', 'Cooking', 'Laundry', 'General Help'];

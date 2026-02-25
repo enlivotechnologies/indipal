@@ -15,7 +15,12 @@ export default function NotificationsScreen() {
     const { notifications, unreadCount, isLoading, fetchNotifications, markAsRead, markAllAsRead } = useNotificationStore();
 
     useEffect(() => {
-        fetchNotifications('pal');
+        const initNotifications = async () => {
+            await fetchNotifications('pal');
+            // Mark all as read when the screen is opened
+            markAllAsRead('pal');
+        };
+        initNotifications();
     }, []);
 
     const handleNotificationClick = async (notif: Notification) => {
@@ -87,7 +92,10 @@ export default function NotificationsScreen() {
                 className="px-6 flex-row items-center justify-between bg-white"
             >
                 <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()} className="mr-4 w-10 h-10 bg-gray-50 rounded-xl items-center justify-center">
+                    <TouchableOpacity
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/home')}
+                        className="mr-4 w-10 h-10 bg-gray-50 rounded-xl items-center justify-center"
+                    >
                         <Ionicons name="chevron-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
                     <View>

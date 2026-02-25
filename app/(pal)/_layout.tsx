@@ -72,6 +72,14 @@ export default function PalLayout() {
                 name="notification-detail"
                 options={{ href: null }}
             />
+            <Tabs.Screen
+                name="call"
+                options={{ href: null }}
+            />
+            <Tabs.Screen
+                name="contact-profile"
+                options={{ href: null }}
+            />
         </Tabs>
     );
 }

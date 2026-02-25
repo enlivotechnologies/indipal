@@ -141,6 +141,10 @@ export const useNotificationStore = create<NotificationState>()(
                         unreadCount: 0,
                     };
                 });
+
+                // Mock socket sync emission
+                console.log(`[Notifications] Mock: Emitting notifications:read for role: ${role}`);
+
                 // Sync with backend mock
                 await new Promise(resolve => setTimeout(resolve, 800));
             },

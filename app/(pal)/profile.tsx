@@ -83,12 +83,12 @@ export default function PalsProfileScreen() {
 
     const handlePhotoUpdate = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        const uri = await pickImageFromGallery();
-        if (!uri) return;
+        const asset = await pickImageFromGallery();
+        if (!asset) return;
 
         setIsUploadingPhoto(true);
         try {
-            const url = await uploadFile(uri);
+            const url = await uploadFile(asset.uri);
             updateUser({ profileImage: url });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         } catch (error) {
@@ -109,7 +109,10 @@ export default function PalsProfileScreen() {
                 className="px-6 flex-row items-center justify-between bg-white"
             >
                 <View className="flex-row items-center">
-                    <TouchableOpacity onPress={() => router.back()} className="mr-4 w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center">
+                    <TouchableOpacity
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/home')}
+                        className="mr-4 w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center"
+                    >
                         <Ionicons name="chevron-back" size={24} color={BRAND_GREEN} />
                     </TouchableOpacity>
                     <View>

@@ -1,3 +1,4 @@
+import { BottomTab } from "@/components/pal/BottomTab";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
 import { useHealthStore } from "@/store/healthStore";
@@ -35,17 +36,9 @@ export default function PalHome() {
         return () => clearInterval(interval);
     }, []);
 
-    const pendingAppointments = bookings.filter(b => b.status === 'Pending').sort((a, b) => b.timestamp - a.timestamp);
-    const activeGig = bookings.find(b => b.status === 'Accepted');
+    const pendingAppointments = bookings.filter(b => b.status === "open").sort((a, b) => b.timestamp - a.timestamp);
+    const activeGig = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
 
-    const handleTabPress = (tab: string) => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        if (tab === 'Home') router.replace('/(pal)/home');
-        if (tab === 'Gig') router.replace('/(pal)/active-gig');
-        if (tab === 'Earnings') router.replace('/(pal)/earnings');
-        if (tab === 'Training') router.replace('/(pal)/training');
-        if (tab === 'Profile') router.replace('/(pal)/profile');
-    };
 
     const getGreeting = () => {
         const hour = new Date().getHours();
@@ -69,15 +62,6 @@ export default function PalHome() {
                     <Text className="text-2xl font-black text-gray-900">Gig Market</Text>
                 </View>
                 <View className="flex-row items-center gap-x-2">
-                    <TouchableOpacity
-                        onPress={() => router.push('/(pal)/chat' as any)}
-                        className="w-10 h-10 bg-indigo-50 rounded-xl items-center justify-center border border-indigo-100"
-                    >
-                        <Ionicons name="chatbubbles-outline" size={20} color="#4F46E5" />
-                        <View className="absolute -top-1 -right-1 bg-red-500 rounded-full w-4 h-4 items-center justify-center border-2 border-white">
-                            <Text className="text-[8px] text-white font-black">2</Text>
-                        </View>
-                    </TouchableOpacity>
                     <TouchableOpacity
                         onPress={() => router.push('/(pal)/notifications' as any)}
                         className="w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center border border-emerald-100"
@@ -213,7 +197,7 @@ export default function PalHome() {
 
                 {/* Quick Stats Grid */}
                 <View className="flex-row justify-between mb-8">
-                    <QuickStatItem label="Gigs Done" value="12" icon="checkmark-shield" color="#10B981" />
+                    <QuickStatItem label="Gigs Done" value="12" icon="shield-checkmark" color="#10B981" />
                     <QuickStatItem label="Active" value={activeGig ? "01" : "00"} icon="flash" color="#F59E0B" />
                     <QuickStatItem label="Rating" value="4.9 ★" icon="star" color="#3B82F6" />
                 </View>
@@ -265,50 +249,47 @@ export default function PalHome() {
                 {/* Active Session Shortcut */}
                 <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1 mt-4">Active Gig</Text>
                 <Animated.View entering={FadeInUp.delay(700).duration(600)} className="mb-10">
-                    <TouchableOpacity
-                        activeOpacity={0.9}
-                        onPress={() => router.replace('/(pal)/active-gig')}
-                        className="bg-gray-900/95 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
-                    >
-                        <View className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-10 -mt-10" />
-                        <View className="flex-row items-center justify-between mb-8">
-                            <View className="flex-row items-center">
-                                <Image
-                                    source={{ uri: 'https://images.unsplash.com/photo-1544144433-d50aff500b91?auto=format&fit=crop&q=80&w=100' }}
-                                    className="w-14 h-14 rounded-2xl"
-                                />
-                                <View className="ml-4">
-                                    <Text className="text-white font-black text-xl">Ramesh Chandra</Text>
-                                    <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Ongoing Session</Text>
+                    {activeGig ? (
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => router.replace('/(pal)/active-gig')}
+                            className="bg-gray-900/95 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
+                        >
+                            <View className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-10 -mt-10" />
+                            <View className="flex-row items-center justify-between mb-8">
+                                <View className="flex-row items-center">
+                                    <View className="w-14 h-14 bg-emerald-500/20 rounded-2xl items-center justify-center">
+                                        <Ionicons name="person" size={24} color="white" />
+                                    </View>
+                                    <View className="ml-4">
+                                        <Text className="text-white font-black text-xl">{activeGig.userName}</Text>
+                                        <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeGig.title}</Text>
+                                    </View>
+                                </View>
+                                <View className="bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                                    <Text className="text-emerald-400 text-[10px] font-black uppercase">
+                                        {activeGig.status.replace(/_/g, ' ')}
+                                    </Text>
                                 </View>
                             </View>
-                            <View className="bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
-                                <Text className="text-emerald-400 text-[10px] font-black uppercase">On Site</Text>
-                            </View>
-                        </View>
 
-                        <View className="flex-row items-center justify-between">
-                            <Text className="text-white/60 text-xs font-bold">HSR Layout • Sector 4</Text>
-                            <Ionicons name="arrow-forward-circle" size={32} color="white" />
+                            <View className="flex-row items-center justify-between">
+                                <Text className="text-white/60 text-xs font-bold">{activeGig.location.address}</Text>
+                                <Ionicons name="arrow-forward-circle" size={32} color="white" />
+                            </View>
+                        </TouchableOpacity>
+                    ) : (
+                        <View className="bg-gray-50 p-8 rounded-[40px] border border-gray-100 items-center justify-center opacity-70">
+                            <Ionicons name="calendar-clear-outline" size={24} color="#D1D5DB" />
+                            <Text className="text-gray-400 font-bold text-[10px] mt-2 uppercase tracking-widest">No Active Sessions</Text>
                         </View>
-                    </TouchableOpacity>
+                    )}
                 </Animated.View>
 
             </ScrollView>
 
-            {/* Custom Bottom Tab Bar */}
-            <Animated.View
-                entering={FadeInUp.delay(200).duration(600).easing(Easing.out(Easing.quad))}
-                className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
-                style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-            >
-                <View style={styles.tabBar} className="bg-gray-900/95 flex-row items-center h-16 rounded-[28px] px-2 shadow-2xl">
-                    <TabButton icon="home" label="Home" active={true} onPress={() => handleTabPress('Home')} />
-                    <TabButton icon="briefcase" label="Gig" active={false} onPress={() => handleTabPress('Gig')} />
-                    <TabButton icon="wallet" label="Earnings" active={false} onPress={() => handleTabPress('Earnings')} />
-                    <TabButton icon="school" label="Training" active={false} onPress={() => handleTabPress('Training')} />
-                </View>
-            </Animated.View>
+            {/* Dashboard Bottom Tab Bar */}
+            <BottomTab activeTab="Home" />
         </View>
     );
 }
@@ -367,19 +348,6 @@ function HealthInsightCard({ icon, label, value, color }: any) {
     );
 }
 
-function TabButton({ icon, label, active, onPress }: any) {
-    return (
-        <View className="flex-1 h-full items-center justify-center">
-            <TouchableOpacity
-                onPress={onPress}
-                className={`flex-row items-center justify-center px-4 h-10 rounded-2xl ${active ? 'bg-emerald-500' : ''}`}
-            >
-                <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
-                {active && <Text numberOfLines={1} className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
-            </TouchableOpacity>
-        </View>
-    );
-}
 
 const styles = StyleSheet.create({
     header: {

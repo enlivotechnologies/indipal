@@ -3,6 +3,8 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { useNotificationStore } from './notificationStore';
 
+export type MessageType = 'text' | 'image' | 'file' | 'location' | 'audio';
+
 export interface Message {
     id: string;
     conversationId: string;
@@ -10,8 +12,16 @@ export interface Message {
     senderName: string;
     receiverId: string;
     text: string;
+    type: MessageType;
     timestamp: number;
     isRead: boolean;
+    fileUrl?: string;
+    mediaUrl?: string;
+    latitude?: number;
+    longitude?: number;
+    fileName?: string;
+    fileSize?: number;
+    duration?: number;
 }
 
 export interface Conversation {
@@ -26,19 +36,32 @@ export interface Conversation {
     lastTimestamp?: number;
     unreadCount: number;
     relatedGigId?: string;
+    isCallActive?: boolean;
+    callType?: 'voice' | 'video';
 }
 
 interface ChatState {
     conversations: Conversation[];
     messages: Record<string, Message[]>; // conversationId -> messages
     isLoading: boolean;
+    blockedUserIds: string[];
 
     // Actions
     fetchConversations: (userId: string) => Promise<void>;
     fetchMessages: (conversationId: string) => Promise<void>;
-    sendMessage: (conversationId: string, text: string, senderId: string, senderName: string) => Promise<void>;
+    sendMessage: (
+        conversationId: string,
+        text: string,
+        senderId: string,
+        senderName: string,
+        type?: MessageType,
+        metadata?: Partial<Message>
+    ) => Promise<void>;
     markAsRead: (conversationId: string) => Promise<void>;
     createConversation: (palId: string, otherId: string, otherName: string, role: 'family' | 'senior', gigId?: string) => string;
+    toggleCall: (conversationId: string, active: boolean, type?: 'voice' | 'video') => void;
+    toggleBlockUser: (userId: string) => void;
+    isUserBlocked: (userId: string) => boolean;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -47,12 +70,11 @@ export const useChatStore = create<ChatState>()(
             conversations: [],
             messages: {},
             isLoading: false,
+            blockedUserIds: [],
 
             fetchConversations: async (userId) => {
                 set({ isLoading: true });
                 await new Promise(resolve => setTimeout(resolve, 800));
-                // In a real app, this would be a fetch call.
-                // Our data is persisted locally in this mock.
                 set({ isLoading: false });
             },
 
@@ -62,7 +84,7 @@ export const useChatStore = create<ChatState>()(
                 set({ isLoading: false });
             },
 
-            sendMessage: async (conversationId, text, senderId, senderName) => {
+            sendMessage: async (conversationId, text, senderId, senderName, type = 'text', metadata = {}) => {
                 const conversation = get().conversations.find(c => c.id === conversationId);
                 if (!conversation) return;
 
@@ -76,9 +98,13 @@ export const useChatStore = create<ChatState>()(
                     senderName,
                     receiverId: receiver.id,
                     text,
+                    type,
                     timestamp: Date.now(),
-                    isRead: false
+                    isRead: false,
+                    ...metadata
                 };
+
+                const lastMsgDisplay = type === 'text' ? text : `[${type.toUpperCase()}]`;
 
                 set((state) => ({
                     messages: {
@@ -87,12 +113,12 @@ export const useChatStore = create<ChatState>()(
                     },
                     conversations: state.conversations.map(c =>
                         c.id === conversationId
-                            ? { ...c, lastMessage: text, lastTimestamp: Date.now() }
+                            ? { ...c, lastMessage: lastMsgDisplay, lastTimestamp: Date.now() }
                             : c
                     )
                 }));
 
-                // Simulate reply for "real-time" feel
+                // Simulate reply
                 setTimeout(async () => {
                     const reply: Message = {
                         id: Math.random().toString(36).substring(7),
@@ -100,7 +126,8 @@ export const useChatStore = create<ChatState>()(
                         senderId: receiver.id,
                         senderName: receiver.name,
                         receiverId: senderId,
-                        text: `Got your message! I'll check on the requirements for the visit.`,
+                        text: `Acknowledged! I see you sent a ${type}.`,
+                        type: 'text',
                         timestamp: Date.now(),
                         isRead: false
                     };
@@ -117,9 +144,8 @@ export const useChatStore = create<ChatState>()(
                         )
                     }));
 
-                    // Trigger Notification
                     useNotificationStore.getState().addNotification({
-                        title: `New Message from ${receiver.name}`,
+                        title: `Message from ${receiver.name}`,
                         message: reply.text,
                         type: 'system',
                         receiverRole: 'pal',
@@ -164,6 +190,29 @@ export const useChatStore = create<ChatState>()(
                 }));
 
                 return id;
+            },
+
+            toggleCall: (conversationId, active, type = 'voice') => {
+                set((state) => ({
+                    conversations: state.conversations.map(c =>
+                        c.id === conversationId ? { ...c, isCallActive: active, callType: type } : c
+                    )
+                }));
+            },
+
+            toggleBlockUser: (userId: string) => {
+                set((state) => {
+                    const isBlocked = state.blockedUserIds.includes(userId);
+                    return {
+                        blockedUserIds: isBlocked
+                            ? state.blockedUserIds.filter(id => id !== userId)
+                            : [...state.blockedUserIds, userId]
+                    };
+                });
+            },
+
+            isUserBlocked: (userId: string) => {
+                return get().blockedUserIds.includes(userId);
             }
         }),
         {

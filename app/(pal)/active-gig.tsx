@@ -1,9 +1,10 @@
+import { BottomTab } from "@/components/pal/BottomTab";
 import { useBookingStore } from "@/store/bookingStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -12,16 +13,39 @@ const BRAND_GREEN = '#10B981';
 export default function ActiveGigScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { bookings, updateBookingStatus } = useBookingStore();
+    const { bookings, updateGigStatus, completeGig } = useBookingStore();
 
-    // Find the current active gig (Accepted status)
-    const activeGig = bookings.find(b => b.status === "Accepted");
+    // Find the current active gig
+    const activeGig = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
 
-    const handleComplete = () => {
+    const handleAction = async () => {
         if (!activeGig) return;
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        updateBookingStatus(activeGig.id, 'Completed');
-        router.replace('/(pal)/home');
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        if (activeGig.status === 'accepted') {
+            await updateGigStatus(activeGig.id, 'on_the_way');
+        } else if (activeGig.status === 'on_the_way') {
+            await updateGigStatus(activeGig.id, 'on_site');
+        } else if (activeGig.status === 'on_site') {
+            await updateGigStatus(activeGig.id, 'in_progress');
+        } else if (activeGig.status === 'in_progress') {
+            const res = await completeGig(activeGig.id);
+            if (res.success) {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                router.replace('/(pal)/home');
+            }
+        }
+    };
+
+    const getButtonStyles = () => {
+        if (!activeGig) return { text: 'Unknown', bg: 'bg-gray-400' };
+        switch (activeGig.status) {
+            case 'accepted': return { text: 'Start Travel', bg: 'bg-indigo-600' };
+            case 'on_the_way': return { text: 'Mark Arrived', bg: 'bg-orange-500' };
+            case 'on_site': return { text: 'Start Session', bg: 'bg-emerald-600' };
+            case 'in_progress': return { text: `Complete Gig • ₹${activeGig.price}`, bg: 'bg-gray-900' };
+            default: return { text: 'Action', bg: 'bg-gray-900' };
+        }
     };
 
     if (!activeGig) {
@@ -42,28 +66,31 @@ export default function ActiveGigScreen() {
         );
     }
 
+    const btn = getButtonStyles();
+
     return (
         <View style={{ flex: 1, backgroundColor: 'white' }}>
             <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }]} className="px-6 flex-row items-center justify-between border-b border-gray-50 bg-white">
                 <Text className="text-2xl font-black text-gray-900">Active Gig</Text>
-                <TouchableOpacity
-                    onPress={() => router.push('/(pal)/profile' as any)}
-                    className="w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center border border-emerald-100"
-                >
-                    <Ionicons name="person-outline" size={20} color="#10B981" />
-                </TouchableOpacity>
+                <View className="flex-row items-center gap-x-2">
+                    <TouchableOpacity
+                        onPress={() => router.push({ pathname: '/(pal)/chat/[id]', params: { id: activeGig.palId } } as any)}
+                        className="w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center border border-emerald-100"
+                    >
+                        <Ionicons name="chatbubble-ellipses-outline" size={20} color="#10B981" />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 100 }}>
                 <Animated.View entering={FadeInUp.duration(600)} className="bg-gray-900 p-8 rounded-[40px] shadow-2xl relative overflow-hidden mb-10">
                     <View className="flex-row items-center mb-8">
-                        <Image
-                            source={{ uri: 'https://images.unsplash.com/photo-1544144433-d50aff500b91?auto=format&fit=crop&q=80&w=100' }}
-                            className="w-16 h-16 rounded-2xl"
-                        />
+                        <View className="w-16 h-16 bg-emerald-500/20 rounded-2xl items-center justify-center overflow-hidden">
+                            <Ionicons name="person" size={32} color="white" />
+                        </View>
                         <View className="ml-4">
                             <Text className="text-white font-black text-xl">{activeGig.userName}</Text>
-                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">Ongoing Care Session</Text>
+                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeGig.title}</Text>
                         </View>
                     </View>
 
@@ -72,9 +99,9 @@ export default function ActiveGigScreen() {
                             <View className="w-10 h-10 bg-white/10 rounded-xl items-center justify-center">
                                 <Ionicons name="location" size={20} color="white" />
                             </View>
-                            <View className="ml-4">
+                            <View className="ml-4 flex-1">
                                 <Text className="text-white/50 text-[10px] uppercase font-black">Location</Text>
-                                <Text className="text-white font-bold text-sm">Sector 4, HSR Layout, BLR</Text>
+                                <Text className="text-white font-bold text-sm" numberOfLines={1}>{activeGig.location.address}</Text>
                             </View>
                         </View>
                         <View className="flex-row items-center">
@@ -82,23 +109,31 @@ export default function ActiveGigScreen() {
                                 <Ionicons name="time" size={20} color="white" />
                             </View>
                             <View className="ml-4">
-                                <Text className="text-white/50 text-[10px] uppercase font-black">Started At</Text>
+                                <Text className="text-white/50 text-[10px] uppercase font-black">Scheduled Time</Text>
                                 <Text className="text-white font-bold text-sm">{activeGig.time}</Text>
                             </View>
                         </View>
                     </View>
+
+                    <View className="flex-row items-center justify-between pt-4 border-t border-white/10">
+                        <View>
+                            <Text className="text-white/40 text-[10px] uppercase font-black">Session Status</Text>
+                            <Text className="text-emerald-400 font-black text-xs uppercase mt-1">● {activeGig.status.replace(/_/g, ' ')}</Text>
+                        </View>
+                        <Text className="text-white font-black text-lg">₹{activeGig.price}</Text>
+                    </View>
                 </Animated.View>
 
-                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Session Checklist</Text>
+                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Session Protocol</Text>
 
                 {[
-                    { id: 1, task: 'Arrival Check-in', done: true },
-                    { id: 2, task: 'Morning Medication', done: false },
-                    { id: 3, task: 'Light Exercises', done: false },
-                    { id: 4, task: 'BP Monitoring', done: false },
-                    { id: 5, task: 'Hydration Log', done: false },
+                    { id: 1, task: 'Acceptance & Assignment', done: ['accepted', 'on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 2, task: 'Travel Started', done: ['on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 3, task: 'Arrived at Site', done: ['on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 4, task: 'Service In Progress', done: ['in_progress'].includes(activeGig.status) },
+                    { id: 5, task: 'Payment & Completion', done: false },
                 ].map((item, idx) => (
-                    <TouchableOpacity
+                    <View
                         key={item.id}
                         className={`flex-row items-center p-6 rounded-[24px] mb-4 border ${item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}
                     >
@@ -106,47 +141,22 @@ export default function ActiveGigScreen() {
                             {item.done && <Ionicons name="checkmark" size={14} color="white" />}
                         </View>
                         <Text className={`ml-4 font-bold text-sm ${item.done ? 'text-emerald-900' : 'text-gray-600'}`}>{item.task}</Text>
-                    </TouchableOpacity>
+                    </View>
                 ))}
 
                 <TouchableOpacity
-                    onPress={handleComplete}
-                    className="mt-10 bg-gray-900 py-6 rounded-[24px] items-center shadow-2xl"
+                    onPress={handleAction}
+                    className={`mt-10 ${btn.bg} py-6 rounded-[24px] items-center shadow-2xl`}
                 >
-                    <Text className="text-white font-black uppercase tracking-widest text-sm">Complete Gig • ₹{activeGig.price}</Text>
+                    <Text className="text-white font-black uppercase tracking-widest text-sm">{btn.text}</Text>
                 </TouchableOpacity>
             </ScrollView>
 
-            {/* Custom Bottom Tab Bar */}
-            <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
-                className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
-                style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-            >
-                <View style={styles.tabBar} className="bg-gray-900/95 flex-row items-center h-16 rounded-[28px] px-2 shadow-2xl">
-                    <TabButton icon="home" label="Home" active={false} onPress={() => router.replace('/(pal)/home')} />
-                    <TabButton icon="briefcase" label="Gig" active={true} onPress={() => router.replace('/(pal)/active-gig')} />
-                    <TabButton icon="wallet" label="Earnings" active={false} onPress={() => router.replace('/(pal)/earnings')} />
-                    <TabButton icon="school" label="Training" active={false} onPress={() => router.replace('/(pal)/training')} />
-                </View>
-            </Animated.View>
+            <BottomTab activeTab="Gig" />
         </View>
     );
 }
 
-function TabButton({ icon, label, active, onPress }: any) {
-    return (
-        <View className="flex-1 h-full items-center justify-center">
-            <TouchableOpacity
-                onPress={onPress}
-                className={`flex-row items-center justify-center px-4 h-10 rounded-2xl ${active ? 'bg-emerald-500' : ''}`}
-            >
-                <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
-                {active && <Text numberOfLines={1} className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
-            </TouchableOpacity>
-        </View>
-    );
-}
 
 const styles = StyleSheet.create({
     header: {

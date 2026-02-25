@@ -1,3 +1,4 @@
+import { BottomTab } from "@/components/pal/BottomTab";
 import { useAuthStore } from "@/store/authStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
@@ -156,19 +157,8 @@ export default function EarningsScreen() {
                 </View>
             )}
 
-            {/* Custom Bottom Tab Bar */}
-            <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
-                className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
-                style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-            >
-                <View style={styles.tabBar} className="bg-gray-900/95 flex-row items-center h-16 rounded-[28px] px-2 shadow-2xl">
-                    <TabButton icon="home" label="Home" active={false} onPress={() => router.replace('/(pal)/home')} />
-                    <TabButton icon="briefcase" label="Gig" active={false} onPress={() => router.replace('/(pal)/active-gig')} />
-                    <TabButton icon="wallet" label="Earnings" active={true} onPress={() => router.replace('/(pal)/earnings')} />
-                    <TabButton icon="school" label="Training" active={false} onPress={() => router.replace('/(pal)/training')} />
-                </View>
-            </Animated.View>
+            {/* Dashboard Bottom Tab Bar */}
+            <BottomTab activeTab="Earnings" />
         </View>
     );
 }
@@ -185,19 +175,6 @@ function StatCard({ label, value, icon, color }: any) {
     );
 }
 
-function TabButton({ icon, label, active, onPress }: any) {
-    return (
-        <View className="flex-1 h-full items-center justify-center">
-            <TouchableOpacity
-                onPress={onPress}
-                className={`flex-row items-center justify-center px-4 h-10 rounded-2xl ${active ? 'bg-emerald-500' : ''}`}
-            >
-                <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
-                {active && <Text numberOfLines={1} className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
-            </TouchableOpacity>
-        </View>
-    );
-}
 
 const styles = StyleSheet.create({
     header: {
