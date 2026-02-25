@@ -19,7 +19,7 @@ export default function SeniorLayout() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    const isSosScreen = pathname.includes('sos');
+    const isSosScreen = pathname?.includes('sos') || false;
 
     // Shared values for dragging
     const translateX = useSharedValue(0);
@@ -106,7 +106,7 @@ export default function SeniorLayout() {
                         options={{ title: "Edit Emergency Contact", href: null }}
                     />
                     <Tabs.Screen
-                        name="video"
+                        name="video/index"
                         options={{ title: "Video" }}
                     />
                     <Tabs.Screen

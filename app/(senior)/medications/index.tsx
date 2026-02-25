@@ -373,7 +373,6 @@ export default function MedicationsList() {
 
             {/* Custom Floating Bottom Bar */}
             <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
                 className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
                 style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >

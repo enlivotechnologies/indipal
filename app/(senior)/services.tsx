@@ -31,6 +31,7 @@ export default function ServicesList() {
                 pathname.includes('video') ? 'Video' : 'Services';
 
     const handleTabPress = (tab: string) => {
+        if (tab === activeTab) return; // Prevention
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (tab === 'Home') router.replace('/(senior)/home' as any);
         if (tab === 'Services') router.replace('/(senior)/services' as any);
@@ -180,7 +181,6 @@ export default function ServicesList() {
 
             {/* Custom Floating Bottom Bar */}
             <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
                 className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
                 style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >

@@ -96,10 +96,10 @@ function TabButton({ icon, label, active, onPress }: any) {
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`flex-row items-center px-5 py-2.5 rounded-2xl ${active ? 'bg-indigo-600' : ''}`}
+      className={`flex-row items-center px-4 py-2 rounded-2xl ${active ? 'bg-indigo-600' : ''}`}
     >
       <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
-      {active && <Text className="text-white text-[10px] font-black ml-2 uppercase tracking-widest">{label}</Text>}
+      {active && <Text className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
     </TouchableOpacity>
   );
 }
@@ -129,6 +129,7 @@ export default function SeniorHomeScreen() {
         (pathname || '').includes('video') ? 'Video' : 'Home';
 
   const handleTabPress = (tab: string) => {
+    if (tab === activeTab) return; // Prevention
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (tab === 'Home') router.replace('/(senior)/home');
     if (tab === 'Services') router.replace('/(senior)/services');
@@ -514,7 +515,6 @@ export default function SeniorHomeScreen() {
 
       {/* Custom Floating Bottom Bar - Aligned with Family but Purple Accent */}
       <Animated.View
-        entering={FadeInUp.delay(200).duration(600).easing(Easing.out(Easing.quad))}
         className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
         style={{ paddingBottom: Math.max(insets.bottom, 20) }}
       >

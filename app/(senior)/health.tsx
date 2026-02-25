@@ -1,7 +1,7 @@
 import { HealthHistory, useHealthStore } from '@/store/healthStore';
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
+import { usePathname, useRouter } from 'expo-router';
 import React from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { LineChart } from "react-native-chart-kit";
@@ -40,12 +40,19 @@ export default function HealthDashboard() {
         };
     }, [history]);
 
+    const pathname = usePathname();
+    const activeTab = pathname.includes('home') ? 'Home' :
+        pathname.includes('services') ? 'Services' :
+            pathname.includes('health') ? 'Health' :
+                pathname.includes('video') ? 'Video' : 'Health';
+
     const handleTabPress = (tab: string) => {
-        if (tab === 'Health') return; // Already here
+        if (tab === activeTab) return; // Prevention
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        if (tab === 'Home') router.replace('/(senior)/home');
-        if (tab === 'Services') router.replace('/(senior)/services');
-        if (tab === 'Video') router.replace('/(senior)/video');
+        if (tab === 'Home') router.replace('/(senior)/home' as any);
+        if (tab === 'Services') router.replace('/(senior)/services' as any);
+        if (tab === 'Health') router.replace('/(senior)/health' as any);
+        if (tab === 'Video') router.replace('/(senior)/video' as any);
     };
 
     const getBPStatus = (sys: number) => {
@@ -310,7 +317,6 @@ export default function HealthDashboard() {
 
             {/* Custom Floating Bottom Bar */}
             <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
                 className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
                 style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >
