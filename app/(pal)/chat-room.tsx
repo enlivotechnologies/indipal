@@ -20,7 +20,6 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BRAND_GREEN = '#10B981';
@@ -51,10 +50,7 @@ export default function ChatRoomScreen() {
         if (id) {
             markAsRead(id as string);
         }
-        return () => {
-            if (id) markAsRead(id as string);
-        };
-    }, [id, markAsRead]);
+    }, [id, markAsRead, chatMessages.length]);
 
     useEffect(() => {
         setTimeout(() => {
@@ -196,7 +192,6 @@ export default function ChatRoomScreen() {
         }
         if (!conversation) return;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        // toggleCall(id as string, true, type);
         // Navigate to Call Screen
         router.push({
             pathname: '/(pal)/call',
@@ -210,13 +205,17 @@ export default function ChatRoomScreen() {
 
     if (!conversation) return null;
 
+    const displayMessages = isTyping
+        ? [...chatMessages, { id: 'typing', text: '', sender: 'them', timestamp: Date.now(), type: 'typing', isRead: false } as any]
+        : chatMessages;
+
     return (
         <View style={{ flex: 1, backgroundColor: 'white' }}>
             <KeyboardAvoidingView
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
                 style={{ flex: 1 }}
             >
-                {/* Functional Header */}
+                {/* Header */}
                 <View
                     style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }}
                     className="px-6 flex-row items-center border-b border-gray-100 bg-white"
@@ -268,111 +267,36 @@ export default function ChatRoomScreen() {
                     </View>
                 </View>
 
-                {/* Real-time Message Area */}
+                {/* Message Area */}
                 <FlatList
                     ref={flatListRef as any}
-                    data={isTyping ? [...chatMessages, { id: 'typing', text: '', sender: 'them', timestamp: Date.now(), type: 'typing', isRead: false } as any] : chatMessages}
+                    data={displayMessages}
                     keyExtractor={(item) => item.id}
                     className="flex-1 px-6"
                     contentContainerStyle={{ paddingVertical: 24 }}
                     showsVerticalScrollIndicator={false}
                     onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
                     onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                    renderItem={({ item: msg }) => {
-                        if (msg.type === 'typing') {
-                            return (
-                                <Animated.View
-                                    entering={FadeInDown.duration(400)}
-                                    className="flex-row justify-start mb-6"
-                                >
-                                    <View className="bg-gray-100 px-6 py-4 rounded-[28px] rounded-tl-none flex-row items-center">
-                                        <View className="flex-row gap-x-1">
-                                            <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
-                                            <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100" />
-                                            <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200" />
-                                        </View>
-                                        <Text className="ml-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                                            {conversation.contactName} is typing...
-                                        </Text>
-                                    </View>
-                                </Animated.View>
-                            );
-                        }
-
-                        const isMe = msg.sender === 'me';
-                        return (
-                            <View key={msg.id} className={`mb-6 flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                <View
-                                    className={`max-w-[85%] px-5 py-4 rounded-[28px] ${isMe ? 'bg-emerald-500 rounded-tr-none shadow-sm shadow-emerald-200' : 'bg-gray-100 rounded-tl-none'
-                                        }`}
-                                >
-                                    {msg.type === 'image' && msg.fileUrl && (
-                                        <Image source={{ uri: msg.fileUrl }} className="w-64 h-48 rounded-2xl mb-2" resizeMode="cover" />
-                                    )}
-                                    {msg.type === 'location' && (
-                                        <TouchableOpacity
-                                            onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${msg.latitude},${msg.longitude}`)}
-                                            className="bg-white/20 p-3 rounded-xl mb-2 flex-row items-center"
-                                        >
-                                            <Ionicons name="map" size={20} color={isMe ? 'white' : BRAND_GREEN} />
-                                            <Text className={`ml-2 text-xs font-bold ${isMe ? 'text-white' : 'text-gray-800'}`}>View on Map</Text>
-                                        </TouchableOpacity>
-                                    )}
-                                    {msg.type === 'file' && (
-                                        <TouchableOpacity className="flex-row items-center bg-black/5 p-3 rounded-xl mb-2">
-                                            <Ionicons name="document-text" size={24} color={isMe ? 'white' : '#6B7281'} />
-                                            <View className="ml-3">
-                                                <Text className={`text-xs font-bold ${isMe ? 'text-white' : 'text-gray-800'}`} numberOfLines={1}>{(msg as any).fileName}</Text>
-                                                <Text className={`text-[8px] uppercase font-black ${isMe ? 'text-white/60' : 'text-gray-400'}`}>{(((msg as any).fileSize || 0) / 1024).toFixed(1)} KB</Text>
-                                            </View>
-                                        </TouchableOpacity>
-                                    )}
-                                    {msg.type === 'audio' && (
-                                        <AudioPlayer
-                                            uri={msg.fileUrl!}
-                                            duration={(msg as any).duration || 0}
-                                            isMe={isMe}
-                                        />
-                                    )}
-
-                                    <Text className={`text-[15px] font-medium leading-6 ${isMe ? 'text-white' : 'text-gray-800'}`}>
-                                        {msg.text}
-                                    </Text>
-
-                                    <View className="flex-row items-center justify-end mt-2">
-                                        <Text className={`text-[9px] font-bold uppercase tracking-widest ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
-                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </Text>
-                                        {isMe && (
-                                            <Ionicons
-                                                name="checkmark-done"
-                                                color={msg.isRead ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
-                                                size={12}
-                                                style={{ marginLeft: 4 }}
-                                            />
-                                        )}
-                                    </View>
-                                </View>
-                            </View>
-                        );
-                    }}
+                    renderItem={({ item }) => (
+                        <MessageItem
+                            msg={item}
+                            isMe={item.sender === 'me'}
+                            contactName={conversation.contactName}
+                        />
+                    )}
                 />
 
-                {/* FUNCTIONAL ATTACHMENT MENU */}
+                {/* ATTACHMENT MENU */}
                 {showAttachments && (
-                    <Animated.View
-                        entering={FadeInDown.duration(200)}
-                        exiting={FadeOutDown.duration(200)}
-                        className="px-6 py-6 bg-gray-50 border-t border-gray-100 flex-row justify-between"
-                    >
+                    <View className="px-6 py-6 bg-gray-50 border-t border-gray-100 flex-row justify-between">
                         <AttachmentItem icon="images" label="Gallery" color="#3B82F6" onPress={handleGallery} />
                         <AttachmentItem icon="camera" label="Camera" color="#EF4444" onPress={handleCamera} />
                         <AttachmentItem icon="location" label="Location" color="#10B981" onPress={handleLocation} />
                         <AttachmentItem icon="document" label="Files" color="#6366F1" onPress={handleFiles} />
-                    </Animated.View>
+                    </View>
                 )}
 
-                {/* FULLY FUNCTIONAL INPUT */}
+                {/* INPUT */}
                 {isBlocked ? (
                     <View
                         style={{ paddingBottom: Math.max(insets.bottom, 16), paddingTop: 16, paddingHorizontal: 16 }}
@@ -427,7 +351,10 @@ export default function ChatRoomScreen() {
                             onPressOut={isRecording ? stopRecording : undefined}
                             onPress={inputText.trim() ? handleSendText : undefined}
                             disabled={isSending}
-                            className={`w-12 h-12 rounded-2xl items-center justify-center shadow-lg ${inputText.trim() || isRecording ? 'bg-emerald-500 shadow-emerald-200' : 'bg-gray-200'}`}
+                            style={{
+                                backgroundColor: (inputText.trim() || isRecording) ? BRAND_GREEN : '#E5E7EB'
+                            }}
+                            className="w-12 h-12 rounded-2xl items-center justify-center shadow-lg"
                         >
                             {isSending ? (
                                 <ActivityIndicator color="white" size="small" />
@@ -441,6 +368,83 @@ export default function ChatRoomScreen() {
         </View>
     );
 }
+
+const MessageItem = React.memo(({ msg, isMe, contactName }: { msg: any, isMe: boolean, contactName: string }) => {
+    if (msg.type === 'typing') {
+        return (
+            <View className="flex-row justify-start mb-6">
+                <View className="bg-gray-100 px-6 py-4 rounded-[28px] rounded-tl-none flex-row items-center">
+                    <View className="flex-row gap-x-1">
+                        <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+                        <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100" />
+                        <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200" />
+                    </View>
+                    <Text className="ml-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                        {contactName} is typing...
+                    </Text>
+                </View>
+            </View>
+        );
+    }
+
+    return (
+        <View className={`mb-6 flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
+            <View
+                style={{
+                    backgroundColor: isMe ? BRAND_GREEN : '#F3F4F6'
+                }}
+                className={`max-w-[85%] px-5 py-4 rounded-[28px] ${isMe ? 'rounded-tr-none shadow-sm' : 'rounded-tl-none'}`}
+            >
+                {msg.type === 'image' && msg.fileUrl && (
+                    <Image source={{ uri: msg.fileUrl }} className="w-64 h-48 rounded-2xl mb-2" resizeMode="cover" />
+                )}
+                {msg.type === 'location' && (
+                    <TouchableOpacity
+                        onPress={() => Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${msg.latitude},${msg.longitude}`)}
+                        className="bg-white/20 p-3 rounded-xl mb-2 flex-row items-center"
+                    >
+                        <Ionicons name="map" size={20} color={isMe ? 'white' : BRAND_GREEN} />
+                        <Text className={`ml-2 text-xs font-bold ${isMe ? 'text-white' : 'text-gray-800'}`}>View on Map</Text>
+                    </TouchableOpacity>
+                )}
+                {msg.type === 'file' && (
+                    <TouchableOpacity className="flex-row items-center bg-black/5 p-3 rounded-xl mb-2">
+                        <Ionicons name="document-text" size={24} color={isMe ? 'white' : '#6B7281'} />
+                        <View className="ml-3">
+                            <Text className={`text-xs font-bold ${isMe ? 'text-white' : 'text-gray-800'}`} numberOfLines={1}>{msg.fileName}</Text>
+                            <Text className={`text-[8px] uppercase font-black ${isMe ? 'text-white/60' : 'text-gray-400'}`}>{((msg.fileSize || 0) / 1024).toFixed(1)} KB</Text>
+                        </View>
+                    </TouchableOpacity>
+                )}
+                {msg.type === 'audio' && (
+                    <AudioPlayer
+                        uri={msg.fileUrl!}
+                        duration={msg.duration || 0}
+                        isMe={isMe}
+                    />
+                )}
+
+                <Text className={`text-[15px] font-medium leading-6 ${isMe ? 'text-white' : 'text-gray-800'}`}>
+                    {msg.text}
+                </Text>
+
+                <View className="flex-row items-center justify-end mt-2">
+                    <Text className={`text-[9px] font-bold uppercase tracking-widest ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    {isMe && (
+                        <Ionicons
+                            name="checkmark-done"
+                            color={msg.isRead ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
+                            size={12}
+                            style={{ marginLeft: 4 }}
+                        />
+                    )}
+                </View>
+            </View>
+        </View>
+    );
+});
 
 function AttachmentItem({ icon, label, color, onPress }: { icon: any; label: string; color: string; onPress: () => void }) {
     return (
@@ -488,8 +492,11 @@ function AudioPlayer({ uri, duration, isMe }: { uri: string; duration: number; i
             <View className="flex-1">
                 <View className={`h-1 w-full rounded-full ${isMe ? 'bg-white/30' : 'bg-gray-200'}`}>
                     <View
-                        style={{ width: `${position * 100}%` }}
-                        className={`h-full rounded-full ${isMe ? 'bg-white' : BRAND_GREEN}`}
+                        style={{
+                            width: `${position * 100}%`,
+                            backgroundColor: isMe ? '#FFFFFF' : BRAND_GREEN
+                        }}
+                        className="h-full rounded-full"
                     />
                 </View>
                 <View className="flex-row justify-between mt-1">

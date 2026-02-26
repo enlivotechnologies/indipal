@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { FlatList, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,7 +22,7 @@ export default function ChatList() {
   }, [user]);
 
   const filteredConversations = conversations.filter(conv => {
-    return (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
+    return conv.ownerId === user?.phone && (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
   });
 
   const activeTab = pathname.includes('home') ? 'Home' :
@@ -86,7 +86,10 @@ export default function ChatList() {
         showsVerticalScrollIndicator={false}
         renderItem={({ item, index }) => {
           return (
-            <Animated.View entering={FadeInDown.delay(index * 100)}>
+            <Animated.View
+              entering={FadeInDown.delay(index * 100)}
+              style={{ width: '100%' }}
+            >
               <TouchableOpacity
                 onPress={() => router.push({ pathname: "/(family)/chat/[id]", params: { id: item.id } })}
                 className="flex-row items-center py-4 border-b border-gray-50"
@@ -114,7 +117,10 @@ export default function ChatList() {
                 </View>
 
                 {item.unreadCount > 0 && (
-                  <View className="ml-2 bg-orange-500 w-5 h-5 rounded-full items-center justify-center shadow-sm shadow-orange-200">
+                  <View
+                    style={{ backgroundColor: '#F97316' }}
+                    className="ml-2 w-5 h-5 rounded-full items-center justify-center shadow-sm"
+                  >
                     <Text className="text-[10px] font-black text-white">{item.unreadCount}</Text>
                   </View>
                 )}
@@ -144,7 +150,10 @@ function TabButton({ icon, label, active, onPress }: { icon: any; label: string;
   return (
     <TouchableOpacity
       onPress={onPress}
-      className={`flex-row items-center px-4 py-2 rounded-2xl ${active ? 'bg-orange-500' : ''}`}
+      style={{
+        backgroundColor: active ? '#F97316' : 'transparent'
+      }}
+      className="flex-row items-center px-4 py-2 rounded-2xl"
     >
       <Ionicons name={active ? (icon as any) : (`${icon}-outline` as any)} size={20} color={active ? "white" : "#9CA3AF"} />
       {active && <Text className="text-white text-[10px] font-bold ml-2 uppercase tracking-widest">{label}</Text>}
@@ -154,6 +163,6 @@ function TabButton({ icon, label, active, onPress }: { icon: any; label: string;
 
 const styles = StyleSheet.create({
   tabBar: {
-    ...(Platform.OS === 'ios' && { backdropFilter: 'blur(20px)' }),
+    // Standard styles only
   }
 });

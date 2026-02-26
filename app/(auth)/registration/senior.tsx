@@ -78,7 +78,7 @@ export default function RegisterSenior() {
                     style={{ flex: 1, paddingHorizontal: 32, paddingTop: Math.max(insets.top, 20) }}
                 >
                     <View className="flex-row items-center mb-8">
-                        <TouchableOpacity onPress={step > 1 ? () => setStep(prev => prev - 1) : () => router.back()}>
+                        <TouchableOpacity onPress={step > 1 ? () => setStep(prev => prev - 1) : () => router.canGoBack() ? router.back() : router.replace('/(auth)/onboarding' as any)}>
                             <Ionicons name="arrow-back" size={24} color="#1F2937" />
                         </TouchableOpacity>
                         <Text className="text-xl font-bold text-gray-900 ml-4">Senior Registration</Text>

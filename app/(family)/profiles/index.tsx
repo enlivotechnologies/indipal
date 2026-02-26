@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Image, Linking, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, FadeInUp, ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -797,6 +797,6 @@ function TabButton({ icon, label, active, onPress }: { icon: any; label: string;
 
 const styles = StyleSheet.create({
   tabBar: {
-    ...(Platform.OS === 'ios' && { backdropFilter: 'blur(20px)' }),
+    // Standard styles only
   }
 });

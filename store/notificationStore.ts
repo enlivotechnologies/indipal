@@ -18,13 +18,15 @@ export interface Notification {
 }
 
 interface NotificationState {
+    allNotifications: Notification[];
     notifications: Notification[];
     unreadCount: number;
     isLoading: boolean;
+    currentRole: UserRole | null;
 
     // Actions
     fetchNotifications: (role: UserRole) => Promise<void>;
-    markAsRead: (id: string) => Promise<void>;
+    markAsRead: (id: string, role: UserRole) => Promise<void>;
     markAllAsRead: (role: UserRole) => Promise<void>;
     addNotification: (notification: Omit<Notification, 'id' | 'createdAt' | 'isRead'>) => Promise<void>;
 }
@@ -32,23 +34,26 @@ interface NotificationState {
 export const useNotificationStore = create<NotificationState>()(
     persist(
         (set, get) => ({
+            allNotifications: [],
             notifications: [],
             unreadCount: 0,
             isLoading: false,
+            currentRole: null,
 
             fetchNotifications: async (role) => {
-                set({ isLoading: true });
-                // Mock API delay
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                set({ isLoading: true, currentRole: role });
+                console.log(`[NotificationStore] Fetching notifications for role: ${role}`);
 
-                // Initial mock data if empty
-                const currentNotifications = get().notifications;
-                if (currentNotifications.length === 0) {
-                    const initialDocs: Notification[] = [
+                // Load initial mock data if none exist or only real ones exist
+                const currentAll = get().allNotifications;
+                const hasMock = currentAll.some(n => n.id.startsWith('MOCK') || n.id.startsWith('NTF00'));
+
+                if (!hasMock) {
+                    const mockNotifications: Notification[] = [
                         {
-                            id: 'NTF001',
+                            id: 'MOCK_NTF001',
                             title: 'Verification Approved',
-                            message: 'Your Government ID has been successfully verified. You now have full access to premium jobs.',
+                            message: 'Your Government ID has been successfully verified.',
                             type: 'verification',
                             receiverRole: 'pal',
                             isRead: false,
@@ -56,97 +61,56 @@ export const useNotificationStore = create<NotificationState>()(
                             actionRoute: '/(pal)/profile'
                         },
                         {
-                            id: 'NTF002',
-                            title: 'New Task Assigned',
-                            message: 'You have a new Morning Care assignment for Ramesh C. at 09:00 AM.',
-                            type: 'task',
-                            receiverRole: 'pal',
-                            isRead: false,
-                            createdAt: new Date(Date.now() - 86400000).toISOString(),
-                            actionRoute: '/(pal)/tasks'
-                        },
-                        {
-                            id: 'NTF004',
-                            title: 'Medication Reminder',
-                            message: 'It is time for your afternoon blood pressure medication. Please take 1 tablet of Amlodipine.',
-                            type: 'alert',
-                            receiverRole: 'senior',
-                            isRead: false,
-                            createdAt: new Date(Date.now() - 1800000).toISOString(),
-                            actionRoute: '/(senior)/health'
-                        },
-                        {
-                            id: 'NTF005',
-                            title: 'Family Update',
-                            message: 'Your son (Vivek) has scheduled a new grocery delivery for tomorrow morning.',
-                            type: 'system',
-                            receiverRole: 'senior',
-                            isRead: false,
-                            createdAt: new Date(Date.now() - 7200000).toISOString(),
-                            actionRoute: '/(senior)/home'
-                        },
-                        {
-                            id: 'NTF006',
+                            id: 'MOCK_NTF006',
                             title: 'Senior Alert',
-                            message: 'Ramesh Chandra has triggered a check-in. Everything seems normal.',
+                            message: 'Ramesh Chandra has triggered a check-in.',
                             type: 'alert',
                             receiverRole: 'family',
                             isRead: false,
                             createdAt: new Date(Date.now() - 5400000).toISOString(),
                             actionRoute: '/(family)/tracking'
-                        },
-                        {
-                            id: 'NTF007',
-                            title: 'Payment Required',
-                            message: 'The pharmacy order for Ramesh Chandra is pending payment confirmation.',
-                            type: 'wallet',
-                            receiverRole: 'family',
-                            isRead: false,
-                            createdAt: new Date(Date.now() - 14400000).toISOString(),
-                            actionRoute: '/(family)/account/notifications'
                         }
                     ];
-                    const filtered = initialDocs.filter(n => n.receiverRole === role);
-                    set({
-                        notifications: filtered,
-                        unreadCount: filtered.filter(n => !n.isRead).length,
-                        isLoading: false
-                    });
-                } else {
-                    set({ isLoading: false });
+
+                    // Merge without duplicates
+                    const merged = [...currentAll, ...mockNotifications.filter(m => !currentAll.some(c => c.id === m.id))];
+                    set({ allNotifications: merged });
                 }
+
+                const filtered = get().allNotifications.filter(n => n.receiverRole === role);
+                console.log(`[NotificationStore] UI Updated: ${filtered.length} notifications for ${role}`);
+
+                set({
+                    notifications: filtered,
+                    unreadCount: filtered.filter(n => !n.isRead).length,
+                    isLoading: false
+                });
             },
 
-            markAsRead: async (id) => {
-                set((state) => {
-                    const updatedNotifications = state.notifications.map((n) =>
-                        n.id === id ? { ...n, isRead: true } : n
-                    );
-                    return {
-                        notifications: updatedNotifications,
-                        unreadCount: updatedNotifications.filter((n) => !n.isRead).length,
-                    };
+            markAsRead: async (id, role) => {
+                const updatedAll = get().allNotifications.map((n) =>
+                    n.id === id ? { ...n, isRead: true } : n
+                );
+                const filtered = updatedAll.filter(n => n.receiverRole === role);
+
+                set({
+                    allNotifications: updatedAll,
+                    notifications: filtered,
+                    unreadCount: filtered.filter(n => !n.isRead).length,
                 });
-                // Sync with backend mock
-                await new Promise(resolve => setTimeout(resolve, 500));
             },
 
             markAllAsRead: async (role) => {
-                set((state) => {
-                    const updatedNotifications = state.notifications.map((n) =>
-                        n.receiverRole === role ? { ...n, isRead: true } : n
-                    );
-                    return {
-                        notifications: updatedNotifications,
-                        unreadCount: 0,
-                    };
+                const updatedAll = get().allNotifications.map((n) =>
+                    n.receiverRole === role ? { ...n, isRead: true } : n
+                );
+                const filtered = updatedAll.filter(n => n.receiverRole === role);
+
+                set({
+                    allNotifications: updatedAll,
+                    notifications: filtered,
+                    unreadCount: 0,
                 });
-
-                // Mock socket sync emission
-                console.log(`[Notifications] Mock: Emitting notifications:read for role: ${role}`);
-
-                // Sync with backend mock
-                await new Promise(resolve => setTimeout(resolve, 800));
             },
 
             addNotification: async (notifData) => {
@@ -157,13 +121,23 @@ export const useNotificationStore = create<NotificationState>()(
                     createdAt: new Date().toISOString(),
                 };
 
-                set((state) => ({
-                    notifications: [newNotif, ...state.notifications],
-                    unreadCount: state.unreadCount + 1,
-                }));
+                console.log('[NotificationStore] Adding notification:', newNotif);
 
-                // Mock backend persistence
-                await new Promise(resolve => setTimeout(resolve, 500));
+                const updatedAll = [newNotif, ...get().allNotifications];
+                set({ allNotifications: updatedAll });
+
+                // Update current view if the role matches
+                const activeRole = get().currentRole;
+                console.log('[NotificationStore] Current active role:', activeRole);
+
+                if (activeRole) {
+                    const filtered = updatedAll.filter(n => n.receiverRole === activeRole);
+                    console.log('[NotificationStore] Filtered notification count:', filtered.length);
+                    set({
+                        notifications: filtered,
+                        unreadCount: filtered.filter(n => !n.isRead).length,
+                    });
+                }
             },
         }),
         {

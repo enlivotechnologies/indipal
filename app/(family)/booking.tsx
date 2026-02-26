@@ -1,9 +1,10 @@
 import { useBookingStore } from '@/store/bookingStore';
+import { usePalStore } from '@/store/palStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -20,20 +21,31 @@ export default function BookingScreen() {
     const [date, setDate] = useState('');
     const [time, setTime] = useState('');
     const [address, setAddress] = useState('');
+    const [selectedPalId, setSelectedPalId] = useState<string | null>(null);
     const [isConfirmed, setIsConfirmed] = useState(false);
     const navigation = useNavigation();
 
+    const { pals, updatePalAvailability, fetchPals, isLoading } = usePalStore();
+    const selectedPal = pals.find(p => p.id === selectedPalId);
+
     useEffect(() => {
+        fetchPals();
         const unsubscribe = navigation.addListener('blur', () => {
             setIsConfirmed(false);
         });
         return unsubscribe;
-    }, [navigation]);
+    }, [navigation, fetchPals]);
 
     const handleConfirm = () => {
+        if (!selectedPalId || !date || !time) {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            return;
+        }
+
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        // Requirement 1: Complete Gig creation logic
+        const pal = pals.find(p => p.id === selectedPalId);
+
         useBookingStore.getState().addGig({
             title: title as string || "Care Session",
             description: `Required ${serviceType} service for ${duration}. Address: ${address}. Special instructions: ${date} at ${time}.`,
@@ -44,12 +56,15 @@ export default function BookingScreen() {
             location: { address: address || "HSR Layout, Bangalore" },
             familyId: "FAM_USER_001",
             clientName: "Senior Member",
-            palId: "",
-            palName: "",
+            palId: selectedPalId,
+            palName: pal?.name || "Assigned Pal",
             date: date,
-            day: "Day TBD", // Can be derived if needed
+            day: "Day TBD",
             time: time,
         });
+
+        // Update Pal Availability
+        updatePalAvailability(selectedPalId, date, time);
 
         setIsConfirmed(true);
     };
@@ -66,7 +81,7 @@ export default function BookingScreen() {
                     </View>
                     <Text className="text-3xl font-black text-gray-900 text-center mb-4">Booking Requested!</Text>
                     <Text className="text-gray-500 text-center text-lg font-medium leading-7 mb-12">
-                        Your request has been sent to your family for approval. You&apos;ll be notified once a Pal is assigned.
+                        Your request has been sent to your family for approval. You'll be notified once a Pal is assigned.
                     </Text>
                     <TouchableOpacity
                         onPress={() => {
@@ -119,8 +134,102 @@ export default function BookingScreen() {
                 contentContainerStyle={{ paddingBottom: insets.bottom + 120 }}
                 className="flex-1 px-6 pt-8"
             >
+                {/* 1. Select Pal */}
+                <View className="mb-10">
+                    <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Select Your Pal</Text>
+                    {isLoading ? (
+                        <View className="py-10 items-center justify-center">
+                            <ActivityIndicator size="small" color="#F97316" />
+                        </View>
+                    ) : pals.length === 0 ? (
+                        <View className="bg-gray-50 p-8 rounded-[32px] border border-dashed border-gray-200 items-center">
+                            <Text className="text-gray-400 font-bold text-xs">No Pals available right now</Text>
+                        </View>
+                    ) : (
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            contentContainerStyle={{ paddingHorizontal: 24 }}
+                            className="-mx-6"
+                        >
+                            {pals.map((pal) => (
+                                <TouchableOpacity
+                                    key={pal.id}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        setSelectedPalId(pal.id);
+                                        setDate('');
+                                        setTime('');
+                                    }}
+                                    className={`w-48 p-5 rounded-[32px] border-2 mr-3 ${selectedPalId === pal.id ? 'bg-orange-50 border-orange-500' : 'bg-white border-gray-100'}`}
+                                >
+                                    <View className="items-center">
+                                        <View className={`w-16 h-16 rounded-full mb-3 items-center justify-center overflow-hidden border-2 ${selectedPalId === pal.id ? 'border-orange-200 bg-orange-100' : 'border-gray-100 bg-gray-50'}`}>
+                                            <Ionicons name="person" size={32} color={selectedPalId === pal.id ? "#F97316" : "#D1D5DB"} />
+                                        </View>
+                                        <Text className="text-gray-900 font-black text-sm text-center line-clamp-1">{pal.name}</Text>
+                                        <Text className="text-[#A1A1AA] text-[9px] font-bold uppercase tracking-widest mb-2">{pal.experienceYears} Years Exp.</Text>
+                                        <View className="flex-row items-center bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                                            <Ionicons name="star" size={10} color="#F59E0B" />
+                                            <Text className="text-gray-500 text-[10px] font-black ml-1">{pal.rating}</Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+                    )}
+                </View>
+
+                {/* 2. Available Dates (Conditional) */}
+                {selectedPal && (
+                    <View className="mb-10">
+                        <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Available Dates</Text>
+                        <View className="flex-row flex-wrap gap-3">
+                            {(selectedPal.availability || []).map((av) => (
+                                <TouchableOpacity
+                                    key={av.date}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        setDate(av.date);
+                                        setTime('');
+                                    }}
+                                    className={`px-6 py-4 rounded-[24px] border-2 ${date === av.date ? 'bg-orange-50 border-orange-500' : 'bg-white border-gray-100'}`}
+                                >
+                                    <Text className={`font-black text-sm ${date === av.date ? 'text-orange-600' : 'text-gray-400'}`}>
+                                        {av.date}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
+                {/* 3. Available Slots (Conditional) */}
+                {date && selectedPal?.availability && (
+                    <View className="mb-10">
+                        <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Select Time Slot</Text>
+                        <View className="space-y-3">
+                            {selectedPal.availability.find(av => av.date === date)?.slots?.map((slot) => (
+                                <TouchableOpacity
+                                    key={slot}
+                                    onPress={() => {
+                                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                        setTime(slot);
+                                    }}
+                                    className={`p-5 rounded-[24px] border-2 flex-row items-center justify-between ${time === slot ? 'bg-orange-50 border-orange-500' : 'bg-white border-gray-100'}`}
+                                >
+                                    <Text className={`font-black text-sm ${time === slot ? 'text-orange-600' : 'text-gray-400'}`}>
+                                        {slot}
+                                    </Text>
+                                    {time === slot && <Ionicons name="checkmark-circle" size={20} color="#F97316" />}
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+                    </View>
+                )}
+
                 {/* Type of Service */}
-                <Animated.View entering={FadeInDown.delay(100)} className="mb-10">
+                <Animated.View entering={FadeInDown.delay(200)} className="mb-10">
                     <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Type of Service</Text>
                     <View className="flex-row flex-wrap gap-3">
                         {serviceOptions.map((option) => (
@@ -144,9 +253,9 @@ export default function BookingScreen() {
                     </View>
                 </Animated.View>
 
-                {/* Duration */}
-                <Animated.View entering={FadeInDown.delay(200)} className="mb-10">
-                    <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Duration</Text>
+                {/* Service Duration */}
+                <Animated.View entering={FadeInDown.delay(225)} className="mb-10">
+                    <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Service Duration</Text>
                     <View className="flex-row gap-x-3">
                         {durationOptions.map((option) => (
                             <TouchableOpacity
@@ -160,7 +269,7 @@ export default function BookingScreen() {
                                     : 'bg-white border-gray-100'
                                     }`}
                             >
-                                <Text className={`font-black text-sm ${duration === option ? 'text-orange-600' : 'text-gray-400'
+                                <Text className={`font-black text-xs ${duration === option ? 'text-orange-600' : 'text-gray-400'
                                     }`}>
                                     {option}
                                 </Text>
@@ -169,35 +278,11 @@ export default function BookingScreen() {
                     </View>
                 </Animated.View>
 
-                {/* Schedule & Location */}
-                <Animated.View entering={FadeInDown.delay(300)} className="mb-10">
-                    <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Schedule & Location</Text>
-
-                    <View className="flex-row gap-x-4 mb-4">
-                        <View className="flex-1">
-                            <Text className="text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Date</Text>
-                            <TextInput
-                                placeholder="e.g. Tomorrow"
-                                value={date}
-                                onChangeText={setDate}
-                                className="bg-white p-5 rounded-2xl border border-gray-100 font-bold text-gray-900"
-                                placeholderTextColor="#9CA3AF"
-                            />
-                        </View>
-                        <View className="flex-1">
-                            <Text className="text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Time</Text>
-                            <TextInput
-                                placeholder="e.g. 10:00 AM"
-                                value={time}
-                                onChangeText={setTime}
-                                className="bg-white p-5 rounded-2xl border border-gray-100 font-bold text-gray-900"
-                                placeholderTextColor="#9CA3AF"
-                            />
-                        </View>
-                    </View>
-
+                {/* Location */}
+                <Animated.View entering={FadeInDown.delay(250)} className="mb-10">
+                    <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-5 ml-1">Delivery Location</Text>
                     <View>
-                        <Text className="text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Delivery Address</Text>
+                        <Text className="text-[10px] font-black text-gray-400 uppercase mb-2 ml-1">Address</Text>
                         <TextInput
                             placeholder="Enter your full home address"
                             value={address}
@@ -223,8 +308,9 @@ export default function BookingScreen() {
                     </View>
                     <TouchableOpacity
                         onPress={handleConfirm}
+                        disabled={!selectedPalId || !date || !time}
                         activeOpacity={0.8}
-                        className="bg-orange-500 px-10 py-5 rounded-[24px] shadow-xl shadow-orange-200"
+                        className={`px-10 py-5 rounded-[24px] shadow-xl ${(!selectedPalId || !date || !time) ? 'bg-gray-200 shadow-none' : 'bg-orange-500 shadow-orange-200'}`}
                     >
                         <Text className="text-white font-black text-base uppercase tracking-widest">Confirm Booking</Text>
                     </TouchableOpacity>
@@ -233,5 +319,3 @@ export default function BookingScreen() {
         </View>
     );
 }
-
-

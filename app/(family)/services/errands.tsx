@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
 import { ErrandStatus, useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -69,8 +71,7 @@ export default function ErrandsScreen() {
                     <TouchableOpacity
                         onPress={() => {
                             if (isAdding) { setIsAdding(false); }
-                            else if (router.canGoBack()) { router.back(); }
-                            else { router.replace('/(family)/home'); }
+                            else { router.replace('/(family)/care'); }
                         }}
                         className="w-12 h-12 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100"
                     >
@@ -196,8 +197,15 @@ export default function ErrandsScreen() {
                                                 <View className="flex-row items-center">
                                                     <TouchableOpacity
                                                         onPress={() => {
+                                                            const userPhone = useAuthStore.getState().user?.phone || 'FAMILY_PHONE';
+                                                            const convId = useChatStore.getState().getOrCreateConversation(userPhone, {
+                                                                id: errand.palId || 'PAL_ARJUN',
+                                                                name: errand.palName || 'Arjun Singh',
+                                                                role: 'pal',
+                                                                avatar: errand.palImage || 'https://i.pravatar.cc/100?u=arjun'
+                                                            });
                                                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                                            router.push({ pathname: '/(family)/chat/[id]', params: { id: errand.palId || errand.id } });
+                                                            router.push({ pathname: '/(family)/chat/[id]', params: { id: convId } } as any);
                                                         }}
                                                         className="w-9 h-9 bg-white rounded-xl items-center justify-center border border-gray-100 shadow-sm mr-2"
                                                     >

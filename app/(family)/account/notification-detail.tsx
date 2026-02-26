@@ -19,7 +19,7 @@ export default function FamilyNotificationDetailScreen() {
         return (
             <View className="flex-1 bg-white items-center justify-center p-6">
                 <Text className="text-gray-400 font-black">Notification not found</Text>
-                <TouchableOpacity onPress={() => router.back()} className="mt-4">
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(family)/account/notifications' as any)} className="mt-4">
                     <Text className="text-orange-600 font-bold">Return Home</Text>
                 </TouchableOpacity>
             </View>
@@ -53,7 +53,7 @@ export default function FamilyNotificationDetailScreen() {
             >
                 <View className="flex-row items-center justify-between">
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(family)/account/notifications' as any)}
                         className="w-12 h-12 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100"
                     >
                         <Ionicons name="chevron-back" size={24} color="#1F2937" />
@@ -108,7 +108,7 @@ export default function FamilyNotificationDetailScreen() {
                     )}
 
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(family)/account/notifications' as any)}
                         className="mt-12 bg-gray-900 py-6 rounded-[32px] items-center shadow-2xl shadow-black/20"
                     >
                         <Text className="text-white font-black uppercase tracking-widest">Return to Inbox</Text>

@@ -133,6 +133,18 @@ export default function TabLayout() {
           href: null,
         }}
       />
+      <Tabs.Screen
+        name="call"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="chat/contact-profile"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

@@ -21,7 +21,7 @@ export default function FamilyNotificationsScreen() {
     const handleNotificationClick = async (notif: Notification) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (!notif.isRead) {
-            await markAsRead(notif.id);
+            await markAsRead(notif.id, 'family');
         }
 
         router.push({
@@ -77,7 +77,7 @@ export default function FamilyNotificationsScreen() {
             >
                 <View className="flex-row items-center justify-between">
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(family)/home')}
                         className="w-12 h-12 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100"
                     >
                         <Ionicons name="chevron-back" size={24} color="#1F2937" />

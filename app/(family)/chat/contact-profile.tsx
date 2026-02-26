@@ -9,9 +9,9 @@ import Animated, { FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
-const BRAND_GREEN = '#10B981';
+const BRAND_ORANGE = '#F97316';
 
-export default function ContactProfileScreen() {
+export default function FamilyContactProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { id, participantId } = useLocalSearchParams();
@@ -75,7 +75,7 @@ export default function ContactProfileScreen() {
 
                     {/* Floating Back Button */}
                     <TouchableOpacity
-                        onPress={() => router.canGoBack() ? router.back() : router.replace({ pathname: '/(pal)/chat-room', params: { id } } as any)}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace({ pathname: '/(family)/chat/[id]', params: { id } } as any)}
                         style={{ top: Math.max(insets.top, 20) }}
                         className="absolute left-6 w-12 h-12 bg-white/20 backdrop-blur-md rounded-2xl items-center justify-center border border-white/30"
                     >
@@ -86,8 +86,8 @@ export default function ContactProfileScreen() {
                     <View className="absolute bottom-0 left-0 right-0 p-8">
                         <Animated.View entering={FadeInDown.delay(100)}>
                             <View className="flex-row items-center mb-2">
-                                <View className="w-2 h-2 bg-emerald-500 rounded-full mr-2 shadow-sm shadow-emerald-500" />
-                                <Text className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">Available</Text>
+                                <View className="w-2 h-2 bg-orange-500 rounded-full mr-2 shadow-sm shadow-orange-500" />
+                                <Text className="text-orange-500 font-black text-[10px] uppercase tracking-widest">Available</Text>
                             </View>
                             <Text className="text-4xl font-black text-gray-900 mb-1">{conversation.contactName}</Text>
                             <Text className="text-gray-500 font-bold text-lg uppercase tracking-tight">{conversation.contactRole} • Trusted Member</Text>
@@ -100,7 +100,7 @@ export default function ContactProfileScreen() {
                     <ActionButton
                         icon="call"
                         label="Call"
-                        color="#10B981"
+                        color={BRAND_ORANGE}
                         onPress={handleCall}
                         delay={200}
                     />
@@ -116,7 +116,7 @@ export default function ContactProfileScreen() {
                             }
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                             router.push({
-                                pathname: '/(pal)/call',
+                                pathname: '/(family)/call',
                                 params: { type: 'video', partnerName: conversation.contactName, partnerAvatar: conversation.contactAvatar || '' }
                             } as any);
                         }}
@@ -132,7 +132,7 @@ export default function ContactProfileScreen() {
                     <ActionButton
                         icon={isBlocked ? "checkmark-circle" : "ban"}
                         label={isBlocked ? "Unblock" : "Block"}
-                        color={isBlocked ? BRAND_GREEN : "#000000"}
+                        color={isBlocked ? BRAND_ORANGE : "#000000"}
                         onPress={() => {
                             if (isBlocked) {
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -154,7 +154,7 @@ export default function ContactProfileScreen() {
                     <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Contact Information</Text>
                     <DetailRow icon="phone-portrait-outline" label="Phone" value="+91 98765 43210" />
                     <DetailRow icon="mail-outline" label="Email" value={`${(conversation.contactName || 'User').toLowerCase().replace(' ', '.')}@enlivo.care`} />
-                    <DetailRow icon="briefcase-outline" label="Related Gig" value={conversation.id.startsWith('CONV_') ? "Private Connection" : conversation.id} />
+                    <DetailRow icon="briefcase-outline" label="Related Hub" value="Indipal Care Service" />
                     <DetailRow icon="star-outline" label="Rating" value="4.9 (24 Reviews)" />
                 </View>
 
@@ -167,10 +167,10 @@ export default function ContactProfileScreen() {
                     <View className="flex-row gap-x-6 mb-8 border-b border-gray-100 pb-2">
                         {['Media', 'Files', 'Links'].map((tab) => (
                             <TouchableOpacity key={tab} onPress={() => setActiveTab(tab as any)}>
-                                <Text className={`text-xs font-black uppercase tracking-widest ${activeTab === tab ? 'text-emerald-500' : 'text-gray-300'}`}>
+                                <Text className={`text-xs font-black uppercase tracking-widest ${activeTab === tab ? 'text-orange-500' : 'text-gray-300'}`}>
                                     {tab}
                                 </Text>
-                                {activeTab === tab && <View className="h-0.5 bg-emerald-500 mt-2" />}
+                                {activeTab === tab && <View className="h-0.5 bg-orange-500 mt-2" />}
                             </TouchableOpacity>
                         ))}
                     </View>
@@ -217,8 +217,8 @@ export default function ContactProfileScreen() {
                                         className="bg-gray-50 p-5 rounded-[24px] border border-gray-100"
                                     >
                                         <View className="flex-row items-center mb-2">
-                                            <Ionicons name="link" size={14} color={BRAND_GREEN} />
-                                            <Text className="text-emerald-600 font-black text-[10px] uppercase ml-2 tracking-widest">Link Shared</Text>
+                                            <Ionicons name="link" size={14} color={BRAND_ORANGE} />
+                                            <Text className="text-orange-600 font-black text-[10px] uppercase ml-2 tracking-widest">Link Shared</Text>
                                         </View>
                                         <Text className="text-gray-900 font-medium text-xs underline" numberOfLines={2}>{m.text}</Text>
                                     </TouchableOpacity>

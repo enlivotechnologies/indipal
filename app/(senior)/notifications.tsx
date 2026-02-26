@@ -100,7 +100,7 @@ export default function SeniorNotificationsScreen() {
                 ]}
                 className="px-6 flex-row items-center justify-between bg-white/80 backdrop-blur-xl"
             >
-                <TouchableOpacity onPress={() => router.back()} className="w-12 h-12 bg-gray-50 rounded-2xl border border-gray-100 items-center justify-center">
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(senior)/home')} className="w-12 h-12 bg-gray-50 rounded-2xl border border-gray-100 items-center justify-center">
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
                 </TouchableOpacity>
                 <View className="items-center">

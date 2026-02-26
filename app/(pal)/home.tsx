@@ -1,13 +1,15 @@
 import { BottomTab } from "@/components/pal/BottomTab";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
+import { useGroceryStore } from "@/store/groceryStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { usePharmacyStore } from "@/store/pharmacyStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import React, { useEffect } from "react";
-import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { Easing, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -19,8 +21,17 @@ export default function PalHome() {
     const user = useAuthStore((state) => state.user);
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { bookings, fetchGigs, hasNewGigs, setHasNewGigs, isLoading } = useBookingStore();
+    const { bookings, fetchGigs, hasNewGigs, setHasNewGigs, isLoading, acceptGig, declineGig } = useBookingStore();
+    const { orders: groceryOrders, acceptOrder: acceptGroceryOrder, completeOrder: completeGroceryOrder } = useGroceryStore();
+    const {
+        orders: pharmacyOrders,
+        acceptOrder: acceptPharmacyOrder,
+        rejectOrder: rejectPharmacyOrder,
+        completeOrder: completePharmacyOrder
+    } = usePharmacyStore();
     const { unreadCount, fetchNotifications } = useNotificationStore();
+
+    const [viewRx, setViewRx] = useState<string | null>(null);
 
     useEffect(() => {
         fetchNotifications('pal');
@@ -33,8 +44,31 @@ export default function PalHome() {
         return () => clearInterval(interval);
     }, [fetchGigs, fetchNotifications]);
 
-    const pendingAppointments = bookings.filter(b => b.status === "open").sort((a, b) => b.timestamp - a.timestamp);
-    const activeGig = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
+    const pendingAppointments = bookings.filter(b =>
+        (b.status === "pending" || b.status === "open" || b.status === "sent_to_pals") &&
+        (!b.palId || b.palId === user?.id)
+    ).sort((a, b) => b.timestamp - a.timestamp);
+
+    const pendingGroceryOrders = groceryOrders.filter(o =>
+        o.status === 'forwarded_to_pal' && (!o.palId || o.palId === user?.id)
+    );
+
+    const pendingPharmacyOrders = pharmacyOrders.filter(o =>
+        o.status === 'processing' && (!o.palId || o.palId === user?.id)
+    );
+
+    const activeGig = bookings.find(b =>
+        b.palId === user?.id &&
+        ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status)
+    );
+
+    const activeGrocery = groceryOrders.find(o =>
+        o.palId === user?.id && o.status === 'accepted_by_pal'
+    );
+
+    const activePharmacy = pharmacyOrders.find(o =>
+        o.palId === user?.id && o.status === 'accepted'
+    );
 
 
     const getGreeting = () => {
@@ -166,7 +200,7 @@ export default function PalHome() {
                     </TouchableOpacity>
                 </Animated.View>
 
-                {/* New Gig Alert System (Requirement #3 & #4) */}
+                {/* New Gig Alert System */}
                 {hasNewGigs && (
                     <Animated.View entering={FadeInUp} className="mb-8">
                         <TouchableOpacity
@@ -192,6 +226,103 @@ export default function PalHome() {
                     </Animated.View>
                 )}
 
+                {/* Pharmacy Queue */}
+                {pendingPharmacyOrders.length > 0 && (
+                    <View className="mb-8">
+                        <View className="flex-row items-center mb-4 ml-1">
+                            <Text className="text-xs font-black text-emerald-600 uppercase tracking-widest">Pharmacy Pickups 💊</Text>
+                            <View className="ml-3 bg-emerald-100 px-2 py-0.5 rounded-full">
+                                <Text className="text-emerald-500 text-[8px] font-black">{pendingPharmacyOrders.length}</Text>
+                            </View>
+                        </View>
+                        {pendingPharmacyOrders.map(order => (
+                            <Animated.View key={order.id} entering={FadeInUp} className="mb-4">
+                                <View className="bg-white p-6 rounded-[32px] border border-emerald-100 shadow-sm relative overflow-hidden">
+                                    <View className="absolute top-0 right-0 w-24 h-24 bg-emerald-50/50 rounded-full -mr-12 -mt-12" />
+                                    <View className="flex-row items-center mb-6">
+                                        <View className="w-12 h-12 bg-emerald-50 rounded-2xl items-center justify-center border border-emerald-100">
+                                            <Ionicons name="medical" size={24} color={BRAND_GREEN} />
+                                        </View>
+                                        <View className="flex-1 ml-4">
+                                            <Text className="text-gray-900 font-bold text-sm">₹{order.totalAmount} • {order.items.length} Meds</Text>
+                                            <Text className="text-gray-500 text-[10px] mt-0.5">For {order.seniorName} • Approval Received</Text>
+                                        </View>
+                                    </View>
+                                    <View className="flex-row gap-x-2">
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                                acceptPharmacyOrder(order.id, user?.id || 'PAL001', user?.name || 'Arjun');
+                                            }}
+                                            className="flex-[2] bg-emerald-500 py-4 rounded-2xl items-center justify-center shadow-lg shadow-emerald-200"
+                                        >
+                                            <Text className="text-white font-black text-[10px] uppercase">Accept Task</Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                rejectPharmacyOrder(order.id);
+                                            }}
+                                            className="flex-1 bg-white py-4 rounded-2xl items-center justify-center border border-gray-100"
+                                        >
+                                            <Text className="text-gray-400 font-black text-[10px] uppercase">Decline</Text>
+                                        </TouchableOpacity>
+                                        {order.prescriptionImage && (
+                                            <TouchableOpacity
+                                                onPress={() => setViewRx(order.prescriptionImage || null)}
+                                                className="w-14 h-14 bg-emerald-50 rounded-2xl items-center justify-center border border-emerald-100"
+                                            >
+                                                <Ionicons name="image" size={20} color={BRAND_GREEN} />
+                                            </TouchableOpacity>
+                                        )}
+                                    </View>
+                                </View>
+                            </Animated.View>
+                        ))}
+                    </View>
+                )}
+
+                {/* 3. Active Gig Highlight (If exists) */}
+                {activeGig && (
+                    <Animated.View entering={FadeInUp.delay(400)} className="mb-8">
+                        <Text className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-4 ml-1">Current Active Gig ⚡️</Text>
+                        <TouchableOpacity
+                            onPress={() => router.push('/(pal)/active-gig')}
+                            className="bg-gray-900 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
+                        >
+                            <LinearGradient
+                                colors={['rgba(16, 185, 129, 0.1)', 'transparent']}
+                                className="absolute inset-0"
+                            />
+                            <View className="flex-row items-center justify-between mb-6">
+                                <View className="flex-row items-center">
+                                    <View className="w-12 h-12 bg-emerald-500/20 rounded-2xl items-center justify-center">
+                                        <Ionicons name="person" size={24} color="#10B981" />
+                                    </View>
+                                    <View className="ml-4">
+                                        <Text className="text-white font-black text-lg">{activeGig.clientName}</Text>
+                                        <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeGig.title || 'Elderly Care'}</Text>
+                                    </View>
+                                </View>
+                                <View className="bg-emerald-500/20 px-3 py-1 rounded-full border border-emerald-500/20">
+                                    <Text className="text-emerald-400 text-[8px] font-black uppercase">{activeGig.status.replace(/_/g, ' ')}</Text>
+                                </View>
+                            </View>
+
+                            <View className="flex-row items-center justify-between pt-6 border-t border-white/10">
+                                <View className="flex-row items-center">
+                                    <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.4)" />
+                                    <Text className="text-white/40 text-[10px] font-bold ml-2 uppercase">{activeGig.time}</Text>
+                                </View>
+                                <View className="flex-row items-center bg-emerald-500 px-4 py-2 rounded-xl">
+                                    <Text className="text-white font-black text-[10px] uppercase">GOTO GIG</Text>
+                                    <Ionicons name="arrow-forward" size={12} color="white" className="ml-2" />
+                                </View>
+                            </View>
+                        </TouchableOpacity>
+                    </Animated.View>
+                )}
+
                 {/* Quick Stats Grid */}
                 <View className="flex-row justify-between mb-8">
                     <QuickStatItem label="Gigs Done" value="12" icon="shield-checkmark" color="#10B981" />
@@ -211,28 +342,92 @@ export default function PalHome() {
                     </TouchableOpacity>
                 </View>
 
+                {/* Grocery Orders Queue */}
+                {pendingGroceryOrders.length > 0 && (
+                    <View className="mb-8">
+                        <View className="flex-row items-center mb-4 ml-1">
+                            <Text className="text-xs font-black text-gray-400 uppercase tracking-widest">Grocery Pickups 🛒</Text>
+                            <View className="ml-3 bg-red-100 px-2 py-0.5 rounded-full">
+                                <Text className="text-red-500 text-[8px] font-black">{pendingGroceryOrders.length}</Text>
+                            </View>
+                        </View>
+                        {pendingGroceryOrders.map(order => (
+                            <Animated.View key={order.id} entering={FadeInUp} className="mb-4">
+                                <View className="bg-white p-6 rounded-[32px] border border-orange-100 shadow-sm">
+                                    <View className="flex-row items-center mb-6">
+                                        <View className="w-12 h-12 bg-orange-50 rounded-2xl border border-orange-100 items-center justify-center">
+                                            <Ionicons name="cart" size={24} color="#F97316" />
+                                        </View>
+                                        <View className="flex-1 ml-4">
+                                            <Text className="text-gray-900 font-bold text-sm">₹{order.totalAmount} • {order.items.length} Items</Text>
+                                            <Text className="text-gray-500 text-[10px] mt-0.5">For {order.seniorName} • Pending Acceptance</Text>
+                                        </View>
+                                    </View>
+                                    <View className="flex-row gap-x-3">
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                                acceptGroceryOrder(order.id, user?.id || 'PAL001', user?.name || 'Arjun');
+                                            }}
+                                            className="flex-1 bg-orange-500 py-4 rounded-2xl items-center justify-center shadow-lg shadow-orange-100"
+                                        >
+                                            <Text className="text-white font-black text-[10px] uppercase">Accept Pickup</Text>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            </Animated.View>
+                        ))}
+                    </View>
+                )}
+
                 {pendingAppointments.length > 0 ? (
                     pendingAppointments.map((booking, idx) => (
                         <Animated.View key={booking.id} entering={FadeInUp.delay(600 + idx * 100)} className="mb-4">
-                            <TouchableOpacity
-                                activeOpacity={0.9}
-                                onPress={() => router.push({ pathname: '/(pal)/gig-detail', params: { id: booking.id } } as any)}
-                                className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm flex-row items-center"
-                            >
-                                <View className="w-12 h-12 bg-emerald-50 rounded-2xl border border-emerald-100 items-center justify-center">
-                                    <Ionicons name="briefcase" size={24} color={BRAND_GREEN} />
-                                </View>
-                                <View className="flex-1 ml-4">
-                                    <View className="flex-row justify-between items-center">
-                                        <Text className="text-gray-900 font-bold text-sm">₹{booking.price}</Text>
-                                        <Text className="text-emerald-500 text-[8px] font-black uppercase">Instant Pay</Text>
+                            <View className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm">
+                                <View className="flex-row items-center mb-6">
+                                    <View className="w-12 h-12 bg-emerald-50 rounded-2xl border border-emerald-100 items-center justify-center">
+                                        <Ionicons
+                                            name={((booking as any).type === 'nurse' ? 'medkit' :
+                                                (booking as any).type === 'house_help' ? 'home' :
+                                                    (booking as any).type === 'grocery' ? 'cart' :
+                                                        (booking as any).type === 'pharmacy' ? 'medical' :
+                                                            (booking as any).type === 'errand' ? 'briefcase' : 'briefcase') as any}
+                                            size={24}
+                                            color={BRAND_GREEN}
+                                        />
                                     </View>
-                                    <Text className="text-gray-500 text-[10px] mt-0.5">{booking.clientName} • {booking.time}</Text>
+                                    <View className="flex-1 ml-4">
+                                        <Text className="text-gray-900 font-bold text-sm">₹{booking.price}</Text>
+                                        <Text className="text-gray-500 text-[10px] mt-0.5" numberOfLines={1}>
+                                            {booking.title || `${(booking as any).type?.toUpperCase()} Session`} • {booking.clientName}
+                                        </Text>
+                                    </View>
+                                    <View className="bg-gray-50 px-2 py-1 rounded-full border border-gray-100">
+                                        <Text className="text-gray-400 text-[8px] font-black uppercase">{booking.status}</Text>
+                                    </View>
                                 </View>
-                                <View className="w-8 h-8 bg-gray-50 rounded-full items-center justify-center ml-2">
-                                    <Ionicons name="chevron-forward" size={14} color="#D1D5DB" />
+
+                                <View className="flex-row gap-x-3">
+                                    <TouchableOpacity
+                                        onPress={async () => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                            await acceptGig(booking.id, user?.id || 'PAL001', user?.name || 'Arjun');
+                                        }}
+                                        className="flex-1 bg-emerald-500 py-4 rounded-2xl items-center justify-center shadow-lg shadow-emerald-200"
+                                    >
+                                        <Text className="text-white font-black text-[10px] uppercase">Accept Gig</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        onPress={async () => {
+                                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            await declineGig(booking.id);
+                                        }}
+                                        className="flex-1 bg-white py-4 rounded-2xl items-center justify-center border border-gray-200"
+                                    >
+                                        <Text className="text-gray-400 font-black text-[10px] uppercase">Decline</Text>
+                                    </TouchableOpacity>
                                 </View>
-                            </TouchableOpacity>
+                            </View>
                         </Animated.View>
                     ))
                 ) : (
@@ -314,7 +509,122 @@ export default function PalHome() {
                     )}
                 </Animated.View>
 
+                {/* Active Grocery Task */}
+                {activeGrocery && (
+                    <View className="mb-10">
+                        <Text className="text-xs font-black text-orange-600 uppercase tracking-widest mb-6 ml-1">Grocery Task In-Progress</Text>
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            className="bg-orange-900 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
+                        >
+                            <View className="flex-row items-center justify-between mb-6">
+                                <View className="flex-row items-center">
+                                    <View className="w-14 h-14 bg-white/10 rounded-2xl items-center justify-center">
+                                        <Ionicons name="cart" size={24} color="white" />
+                                    </View>
+                                    <View className="ml-4">
+                                        <Text className="text-white font-black text-xl">{activeGrocery.seniorName}</Text>
+                                        <Text className="text-white/60 text-[10px] font-black uppercase tracking-widest">
+                                            {activeGrocery.items.length} Items • ₹{activeGrocery.totalAmount}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View className="bg-orange-500 px-3 py-1.5 rounded-full">
+                                    <Text className="text-white text-[10px] font-black uppercase">Active</Text>
+                                </View>
+                            </View>
+
+                            <TouchableOpacity
+                                onPress={() => {
+                                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                    completeGroceryOrder(activeGrocery.id);
+                                }}
+                                className="bg-white py-4 rounded-2xl items-center justify-center shadow-lg"
+                            >
+                                <Text className="text-orange-900 font-black text-[10px] uppercase">Mark Delivered</Text>
+                            </TouchableOpacity>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {/* Active Pharmacy Task */}
+                {activePharmacy && (
+                    <View className="mb-10">
+                        <Text className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-6 ml-1">Active Pharmacy Order</Text>
+                        <TouchableOpacity
+                            activeOpacity={0.9}
+                            className="bg-emerald-900 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
+                        >
+                            <LinearGradient
+                                colors={['rgba(16, 185, 129, 0.15)', 'transparent']}
+                                className="absolute inset-0"
+                            />
+                            <View className="flex-row items-center justify-between mb-6">
+                                <View className="flex-row items-center">
+                                    <View className="w-14 h-14 bg-emerald-500/20 rounded-2xl items-center justify-center border border-emerald-500/20">
+                                        <Ionicons name="medical" size={24} color="#10B981" />
+                                    </View>
+                                    <View className="ml-4">
+                                        <Text className="text-white font-black text-xl">{activePharmacy.seniorName}</Text>
+                                        <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                                            {activePharmacy.items.length} Items • ₹{activePharmacy.totalAmount}
+                                        </Text>
+                                    </View>
+                                </View>
+                                <View className="bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
+                                    <Text className="text-emerald-400 text-[10px] font-black uppercase">Active</Text>
+                                </View>
+                            </View>
+
+                            <View className="flex-row gap-x-2">
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                                        completePharmacyOrder(activePharmacy.id);
+                                    }}
+                                    className="flex-1 bg-emerald-500 py-4 rounded-2xl items-center justify-center shadow-lg shadow-emerald-200"
+                                >
+                                    <Text className="text-white font-black text-[10px] uppercase">Mark as Delivered</Text>
+                                </TouchableOpacity>
+                                {activePharmacy.prescriptionImage && (
+                                    <TouchableOpacity
+                                        onPress={() => setViewRx(activePharmacy.prescriptionImage || null)}
+                                        className="w-14 h-14 bg-white/10 rounded-2xl items-center justify-center border border-white/20"
+                                    >
+                                        <Ionicons name="image" size={20} color="white" />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        </TouchableOpacity>
+                    </View>
+                )}
             </ScrollView>
+
+            {/* Prescription Viewer Modal */}
+            <Modal visible={!!viewRx} transparent animationType="fade">
+                <View className="flex-1 bg-black/95 justify-center items-center p-6">
+                    <TouchableOpacity
+                        onPress={() => setViewRx(null)}
+                        className="absolute top-12 right-6 z-10 w-12 h-12 bg-white/10 rounded-full items-center justify-center"
+                    >
+                        <Ionicons name="close" size={28} color="white" />
+                    </TouchableOpacity>
+                    <Text className="text-white/40 text-[10px] font-black uppercase tracking-[3px] mb-6">Prescription Document</Text>
+                    {viewRx && (
+                        <Image
+                            source={{ uri: viewRx }}
+                            className="w-full h-2/3 rounded-3xl"
+                            resizeMode="contain"
+                        />
+                    )}
+                    <View className="mt-10 items-center">
+                        <View className="flex-row items-center bg-emerald-500/20 px-4 py-2 rounded-full border border-emerald-500/30">
+                            <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+                            <Text className="text-emerald-400 text-[10px] font-bold ml-2 uppercase">Verified by Family</Text>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
 
             {/* Dashboard Bottom Tab Bar */}
             <BottomTab activeTab="Home" />
@@ -343,6 +653,6 @@ const styles = StyleSheet.create({
         borderBottomColor: '#F3F4F6',
     },
     tabBar: {
-        ...(Platform.OS === 'ios' && { backdropFilter: 'blur(20px)' }),
+        // Standard styles only
     }
 });

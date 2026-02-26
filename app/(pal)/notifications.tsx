@@ -26,7 +26,7 @@ export default function NotificationsScreen() {
     const handleNotificationClick = async (notif: Notification) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (!notif.isRead) {
-            await markAsRead(notif.id);
+            await markAsRead(notif.id, 'pal');
         }
 
         router.push({

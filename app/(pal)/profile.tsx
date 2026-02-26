@@ -1,10 +1,11 @@
 import { pickImageFromGallery, uploadFile } from "@/lib/uploadService";
 import { useAuthStore } from "@/store/authStore";
+import { usePalStore } from "@/store/palStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator, Alert, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp, ZoomIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -13,16 +14,74 @@ const BRAND_GREEN = '#10B981';
 export default function PalsProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { user, logout, updateUser, createSupportTicket } = useAuthStore();
+    const { user, logout, updateUser, updateAvailability, createSupportTicket } = useAuthStore();
 
     // UI States
     const [isEditing, setIsEditing] = useState(false);
     const [showSupportModal, setShowSupportModal] = useState(false);
     const [showRaiseTicketModal, setShowRaiseTicketModal] = useState(false);
+    const [showAvailabilityModal, setShowAvailabilityModal] = useState(false);
     const [ticketCategory, setTicketCategory] = useState<'Payment' | 'Verification' | 'Technical Issue' | 'Other'>('Payment');
     const [ticketDescription, setTicketDescription] = useState('');
     const [isSubmittingTicket, setIsSubmittingTicket] = useState(false);
     const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+    // Availability State
+    const [tempAvailability, setTempAvailability] = React.useState<{ date: string; slots: string[] }[]>(
+        Array.isArray(user?.availability) ? user.availability : []
+    );
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [newSlot, setNewSlot] = useState('');
+
+    // Generate next 14 days for selection
+    const availableDates = Array.from({ length: 14 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() + i);
+        return d.toISOString().split('T')[0];
+    });
+
+    // Sync temp availability when user changes or modal opens
+    React.useEffect(() => {
+        if (showAvailabilityModal) {
+            setTempAvailability(Array.isArray(user?.availability) ? user.availability : []);
+        }
+    }, [user?.availability, showAvailabilityModal]);
+
+    const handleSaveAvailability = () => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        updateAvailability(tempAvailability);
+
+        // Sync with usePalStore so families see the update
+        const palId = user?.id || 'PAL001'; // Default to example ID if not set
+        const palStore = usePalStore.getState();
+        const updatedPals = palStore.pals.map((p: any) =>
+            (p.id === palId || p.name === user?.name) ? { ...p, availability: tempAvailability } : p
+        );
+        usePalStore.setState({ pals: updatedPals });
+
+        setShowAvailabilityModal(false);
+    };
+
+    const addTimeSlot = () => {
+        if (!newSlot) return;
+        setTempAvailability(prev => {
+            const current = Array.isArray(prev) ? prev : [];
+            const dateEntry = current.find(d => d.date === selectedDate);
+            if (dateEntry) {
+                if (dateEntry.slots.includes(newSlot)) return current;
+                return current.map(d => d.date === selectedDate ? { ...d, slots: [...d.slots, newSlot].sort() } : d);
+            }
+            return [...current, { date: selectedDate, slots: [newSlot] }];
+        });
+        setNewSlot('');
+    };
+
+    const removeTimeSlot = (date: string, slot: string) => {
+        setTempAvailability(prev => {
+            const current = Array.isArray(prev) ? prev : [];
+            return current.map(d => d.date === date ? { ...d, slots: d.slots.filter(s => s !== slot) } : d).filter(d => d.slots.length > 0);
+        });
+    };
 
     // Edit Form State
     const [editName, setEditName] = useState(user?.name || '');
@@ -138,7 +197,7 @@ export default function PalsProfileScreen() {
                 showsVerticalScrollIndicator={false}
                 className="flex-1"
                 contentContainerStyle={{
-                    paddingBottom: insets.bottom + 100
+                    paddingBottom: insets.bottom + 40
                 }}
             >
                 {/* Profile Card */}
@@ -228,6 +287,16 @@ export default function PalsProfileScreen() {
                             onPress={() => setIsEditing(true)}
                         />
                         <SettingsOption
+                            icon="calendar"
+                            label="Availability Management"
+                            subLabel="Set your active dates & time slots"
+                            onPress={() => {
+                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                setTempAvailability(user?.availability || []);
+                                setShowAvailabilityModal(true);
+                            }}
+                        />
+                        <SettingsOption
                             icon="wallet"
                             label="Earnings & Wallet"
                             subLabel={`₹ ${(user?.walletBalance || 0).toLocaleString()} available for withdrawal`}
@@ -269,19 +338,7 @@ export default function PalsProfileScreen() {
                 </View>
             </ScrollView>
 
-            {/* Custom Bottom Tab Bar */}
-            <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
-                className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
-                style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-            >
-                <View style={styles.tabBar} className="bg-gray-900/95 flex-row items-center h-16 rounded-[28px] px-2 shadow-2xl">
-                    <TabButton icon="home" label="Home" active={false} onPress={() => router.replace('/(pal)/home')} />
-                    <TabButton icon="briefcase" label="Gig" active={false} onPress={() => router.replace('/(pal)/active-gig')} />
-                    <TabButton icon="wallet" label="Earnings" active={false} onPress={() => router.replace('/(pal)/earnings')} />
-                    <TabButton icon="school" label="Training" active={false} onPress={() => router.replace('/(pal)/training')} />
-                </View>
-            </Animated.View>
+            {/* Bottom Tab Bar Removed */}
 
             {/* Modals */}
             <Modal visible={isEditing} transparent animationType="fade">
@@ -430,6 +487,166 @@ export default function PalsProfileScreen() {
                     </Animated.View>
                 </View>
             </Modal>
+
+            {/* Availability Management Modal */}
+            <Modal visible={showAvailabilityModal} transparent animationType="fade">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                    <Animated.View
+                        entering={ZoomIn.duration(400)}
+                        className="bg-white w-full rounded-[48px] p-8 shadow-2xl overflow-hidden"
+                        style={{ height: '85%' }}
+                    >
+                        <View className="flex-row justify-between items-center mb-8">
+                            <View>
+                                <Text className="text-2xl font-black text-gray-900">Manage Availability</Text>
+                                <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Set your working hours</Text>
+                            </View>
+                            <TouchableOpacity onPress={() => setShowAvailabilityModal(false)} className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center">
+                                <Ionicons name="close" size={24} color="#1F2937" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView
+                            showsVerticalScrollIndicator={false}
+                            style={{ flex: 1 }}
+                            contentContainerStyle={{ paddingBottom: 20 }}
+                        >
+                            {/* Date Picker Section */}
+                            <View className="flex-row items-center mb-6">
+                                <View className="w-1.5 h-6 bg-emerald-500 rounded-full mr-3" />
+                                <Text className="text-sm font-black text-gray-900 uppercase tracking-widest">Select Work Date</Text>
+                            </View>
+                            <View className="mb-8">
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    contentContainerStyle={{ paddingHorizontal: 4 }}
+                                >
+                                    {availableDates.map(date => {
+                                        const d = new Date(date);
+                                        const isSelected = selectedDate === date;
+                                        return (
+                                            <TouchableOpacity
+                                                key={date}
+                                                onPress={() => {
+                                                    console.log(`[PalProfile] Selected Date: ${date}`);
+                                                    setSelectedDate(date);
+                                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                                }}
+                                                className={`mr-4 items-center justify-center w-20 h-24 rounded-[32px] border-2 ${isSelected
+                                                    ? 'bg-emerald-500 border-emerald-500 shadow-lg shadow-emerald-200'
+                                                    : 'bg-gray-50 border-gray-100'
+                                                    }`}
+                                            >
+                                                <Text className={`text-[10px] font-black uppercase ${isSelected ? 'text-white/80' : 'text-gray-400'}`}>
+                                                    {d.toLocaleDateString('en-GB', { weekday: 'short' })}
+                                                </Text>
+                                                <Text className={`text-xl font-black mt-1 ${isSelected ? 'text-white' : 'text-gray-900'}`}>
+                                                    {d.getDate()}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
+                                </ScrollView>
+                            </View>
+
+                            <View className="flex-row items-center mb-4 mt-2">
+                                <View className="w-1.5 h-6 bg-emerald-500 rounded-full mr-3" />
+                                <Text className="text-sm font-black text-gray-900 uppercase tracking-widest">Available Slots for {new Date(selectedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</Text>
+                            </View>
+                            <View className="flex-row items-center bg-gray-50 rounded-2xl border border-gray-100 px-4 py-1 mb-4">
+                                <Ionicons name="time-outline" size={18} color={BRAND_GREEN} />
+                                <TextInput
+                                    value={newSlot}
+                                    onChangeText={setNewSlot}
+                                    placeholder="e.g. 09:00 AM - 11:00 AM"
+                                    className="flex-1 py-4 ml-3 font-bold text-gray-900"
+                                />
+                                <TouchableOpacity onPress={addTimeSlot} className="bg-emerald-500 w-8 h-8 rounded-full items-center justify-center">
+                                    <Ionicons name="add" size={20} color="white" />
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Quick Presets */}
+                            <View className="bg-emerald-50 p-6 rounded-[32px] border border-emerald-100 mb-8">
+                                <Text className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-4">Quick Presets</Text>
+                                <View className="flex-row flex-wrap gap-2">
+                                    {['09:00 AM - 12:00 PM', '12:00 PM - 03:00 PM', '03:00 PM - 06:00 PM', '06:00 PM - 09:00 PM'].map(slot => (
+                                        <TouchableOpacity
+                                            key={slot}
+                                            onPress={() => {
+                                                setNewSlot(slot);
+                                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                            }}
+                                            className={`px-4 py-2.5 rounded-xl border ${newSlot === slot ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-emerald-100'}`}
+                                        >
+                                            <Text className={`text-[9px] font-black uppercase ${newSlot === slot ? 'text-white' : 'text-emerald-600'}`}>{slot}</Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </View>
+
+                            {/* Active Slots Display */}
+                            <View className="flex-row items-center justify-between mb-4">
+                                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest">Active Schedule</Text>
+                                <View className="bg-emerald-100 px-2 py-0.5 rounded-full">
+                                    <Text className="text-emerald-600 text-[8px] font-bold">{(Array.isArray(tempAvailability) ? tempAvailability : []).find(d => d.date === selectedDate)?.slots?.length || 0} Slots</Text>
+                                </View>
+                            </View>
+
+                            <View className="space-y-3 mb-8">
+                                {(Array.isArray(tempAvailability) ? tempAvailability : []).find(d => d.date === selectedDate)?.slots?.map(slot => (
+                                    <Animated.View entering={FadeInUp} key={slot} className="flex-row items-center justify-between bg-white p-5 rounded-2xl border border-gray-100 mb-2 shadow-sm">
+                                        <View className="flex-row items-center">
+                                            <Ionicons name="time" size={16} color={BRAND_GREEN} />
+                                            <Text className="text-gray-900 font-bold text-xs ml-3 uppercase">{slot}</Text>
+                                        </View>
+                                        <TouchableOpacity onPress={() => removeTimeSlot(selectedDate, slot)} className="w-8 h-8 bg-red-50 rounded-full items-center justify-center">
+                                            <Ionicons name="close" size={16} color="#EF4444" />
+                                        </TouchableOpacity>
+                                    </Animated.View>
+                                ))}
+                                {(!(Array.isArray(tempAvailability) ? tempAvailability : []).find(d => d.date === selectedDate) || (Array.isArray(tempAvailability) ? tempAvailability : []).find(d => d.date === selectedDate)?.slots.length === 0) && (
+                                    <View className="p-10 items-center justify-center bg-gray-50 rounded-[32px] border-2 border-dashed border-gray-100 mb-4">
+                                        <Ionicons name="calendar-outline" size={32} color="#D1D5DB" />
+                                        <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mt-4">No slots for this date</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Summary Section */}
+                            <View className="flex-row items-center mb-4 mt-4">
+                                <View className="w-1.5 h-6 bg-gray-300 rounded-full mr-3" />
+                                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest">Weekly Overview</Text>
+                            </View>
+                            {(Array.isArray(tempAvailability) ? tempAvailability : []).filter(d => d && d.date !== selectedDate).map(entry => (
+                                <View key={entry.date} className="bg-gray-50 border border-gray-100 p-5 rounded-3xl mb-3 flex-row items-center">
+                                    <View className="w-10 h-10 bg-white rounded-xl items-center justify-center shadow-sm">
+                                        <Text className="text-emerald-600 font-black text-xs">{new Date(entry.date).getDate()}</Text>
+                                    </View>
+                                    <View className="ml-4 flex-1">
+                                        <Text className="text-gray-900 font-bold text-[10px] uppercase tracking-wider mb-1">
+                                            {new Date(entry.date).toLocaleDateString('en-GB', { weekday: 'long' })}
+                                        </Text>
+                                        <View className="flex-row flex-wrap gap-1">
+                                            {(entry.slots || []).map(s => (
+                                                <Text key={s} className="text-gray-400 text-[8px] font-bold uppercase">{s.split(' - ')[0]} •</Text>
+                                            ))}
+                                        </View>
+                                    </View>
+                                </View>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            onPress={handleSaveAvailability}
+                            className="mt-6 bg-emerald-500 py-5 rounded-[24px] items-center shadow-xl shadow-emerald-500/30"
+                        >
+                            <Text className="text-white font-black uppercase tracking-widest">Save Schedule</Text>
+                        </TouchableOpacity>
+                    </Animated.View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -509,6 +726,6 @@ const styles = StyleSheet.create({
         borderBottomColor: '#F3F4F6',
     },
     tabBar: {
-        ...(Platform.OS === 'ios' && { backdropFilter: 'blur(20px)' }),
+        // Standard styles only
     }
 });

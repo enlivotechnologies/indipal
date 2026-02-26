@@ -1,33 +1,25 @@
 import { useAuthStore } from '@/store/authStore';
 import { useBookingStore } from '@/store/bookingStore';
-import { useErrandStore } from '@/store/errandStore';
+import { useChatStore } from '@/store/chatStore';
+import { usePalStore } from '@/store/palStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-
-
-// Precise February 2026 data
-const AVAILABILITY_DATA = [
-    { day: 'Tue', date: '24 Feb', slots: ['09:00 AM', '12:00 PM', '03:00 PM', '06:00 PM'], isToday: true },
-    { day: 'Wed', date: '25 Feb', slots: ['08:00 AM', '10:30 AM', '01:00 PM', '04:00 PM', '07:30 PM'] },
-    { day: 'Thu', date: '26 Feb', slots: ['09:00 AM', '11:00 AM', '02:00 PM', '05:00 PM', '08:00 PM'] },
-    { day: 'Fri', date: '27 Feb', slots: ['10:00 AM', '01:00 PM', '04:00 PM', '07:00 PM'] },
-    { day: 'Sat', date: '28 Feb', slots: ['09:00 AM', '12:00 PM', '03:00 PM'] },
-];
 
 export default function PalProfileScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const insets = useSafeAreaInsets();
     const user = useAuthStore((state) => state.user);
-    const { addBooking, bookings } = useBookingStore();
+    const { addGig, bookings } = useBookingStore();
+    const { pals } = usePalStore();
 
     const [palInfo, setPalInfo] = useState({
-        id: '3',
+        id: 'PAL001',
         name: 'Arjun Singh',
         image: 'https://i.pravatar.cc/150?u=arjun',
         specialty: 'Elderly Care Specialist'
@@ -37,9 +29,10 @@ export default function PalProfileScreen() {
 
     useEffect(() => {
         if (params.id) {
+            const id = (Array.isArray(params.id) ? params.id[0] : params.id);
             setPalInfo(prev => ({
                 ...prev,
-                id: (Array.isArray(params.id) ? params.id[0] : params.id) || '3',
+                id: id || 'PAL001',
                 name: (Array.isArray(params.name) ? params.name[0] : params.name) || 'Arjun Singh',
                 image: (Array.isArray(params.image) ? params.image[0] : params.image) || 'https://i.pravatar.cc/150?u=arjun'
             }));
@@ -49,59 +42,61 @@ export default function PalProfileScreen() {
     // UI States
     const [selectedDayIndex, setSelectedDayIndex] = useState(0);
     const [selectedTimeSlot, setSelectedTimeSlot] = useState<string | null>(null);
+    const [bookingSuccess, setBookingSuccess] = useState(false);
 
-    const systemNow = new Date('2026-02-24T15:39:16');
+    const targetPal = useMemo(() => {
+        return pals.find(p => p.id === palInfo.id) || pals.find(p => p.name === palInfo.name) || pals[0];
+    }, [pals, palInfo.id, palInfo.name]);
+
+    const availabilityData = useMemo(() => {
+        return targetPal?.availability || [];
+    }, [targetPal]);
 
     const palData = useMemo(() => ({
         ...palInfo,
-        rating: 4.9,
+        rating: targetPal?.rating || 4.9,
         reviews: 124,
-        experience: '5+ yrs',
+        experience: `${targetPal?.experienceYears || 5}+ yrs`,
         sessions: '1k+',
         bio: 'Dedicated and compassionate caregiver with expertise in elderly support. Certified in basic life support and specialized in mobility assistance and companionship.',
         hourlyRate: '450',
         verified: true,
-        location: 'Seattle Memorial Hospital, US'
-    }), [palInfo]);
+        location: 'HSR Layout, Bangalore'
+    }), [palInfo, targetPal]);
 
-    const currentDay = AVAILABILITY_DATA[selectedDayIndex] || AVAILABILITY_DATA[0];
+    const currentDay = availabilityData[selectedDayIndex];
 
     // Check if this slot already has a booking
     const activeBooking = useMemo(() => {
+        if (!currentDay || !selectedTimeSlot) return null;
         return bookings.find(b =>
             b.palId === palData.id &&
             b.date === currentDay.date &&
             b.time === selectedTimeSlot &&
-            (b.status === 'open' || b.status === 'accepted' || b.status === 'in_progress')
+            (b.status === 'pending' || b.status === 'accepted' || b.status === 'in_progress')
         );
-    }, [bookings, palData.id, currentDay.date, selectedTimeSlot]);
-
-    const { addNotification } = useErrandStore();
+    }, [bookings, palData.id, currentDay, selectedTimeSlot]);
 
     const handleBooking = () => {
-        if (!selectedTimeSlot) return;
+        if (!selectedTimeSlot || !currentDay) return;
 
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-        addBooking({
+        addGig({
             palId: palData.id,
             palName: palData.name,
             clientName: user?.name || 'Member',
             date: currentDay.date,
-            day: currentDay.day,
+            day: new Date(currentDay.date).toLocaleDateString('en-GB', { weekday: 'short' }),
             time: selectedTimeSlot,
-            price: palData.hourlyRate
+            price: Number(palData.hourlyRate),
+            paymentAmount: Number(palData.hourlyRate),
+            title: 'Elderly Care Session',
+            location: { address: 'Family Home Address' },
+            familyId: user?.id || 'FAM_001'
         });
 
-        // Notify Senior
-        addNotification({
-            title: 'New Visit Scheduled',
-            message: `Your family has booked a session with ${palData.name} on ${currentDay.date} at ${selectedTimeSlot}.`,
-            type: 'service',
-        });
-
-        // Optional: Navigate to home or show success modal
-        // router.replace('/(family)/home');
+        setBookingSuccess(true);
     };
 
     const onDatePress = (index: number) => {
@@ -112,12 +107,18 @@ export default function PalProfileScreen() {
 
     const isSlotInPast = (dateStr: string, timeStr: string) => {
         try {
-            const dayNum = parseInt(dateStr.split(' ')[0]);
+            const systemNow = new Date();
+            const [rawDate, monthStr] = dateStr.split(' ');
+            const dayNum = parseInt(rawDate);
             const [rawTime, ampm] = timeStr.split(' ');
             let [hh, mm] = rawTime.split(':').map(Number);
             if (ampm === 'PM' && hh !== 12) hh += 12;
             if (ampm === 'AM' && hh === 12) hh = 0;
-            const targetDate = new Date(2026, 1, dayNum, hh, mm);
+
+            // Assuming current year and month for simplicity in mock
+            const targetDate = new Date();
+            targetDate.setDate(dayNum);
+            targetDate.setHours(hh, mm, 0, 0);
             return targetDate < systemNow;
         } catch {
             return false;
@@ -253,15 +254,11 @@ export default function PalProfileScreen() {
 
                         <View style={{ backgroundColor: '#F9FAFB', borderRadius: 24, padding: 20, marginBottom: 24 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                                <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>February 2026</Text>
-                                <View style={{ flexDirection: 'row', gap: 16 }}>
-                                    <Ionicons name="chevron-back" size={20} color="#111827" />
-                                    <Ionicons name="chevron-forward" size={20} color="#111827" />
-                                </View>
+                                <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827' }}>Availability Schedule</Text>
                             </View>
 
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -10 }}>
-                                {AVAILABILITY_DATA.map((item, idx) => {
+                                {availabilityData.length > 0 ? availabilityData.map((item, idx) => {
                                     const isChosen = selectedDayIndex === idx;
                                     return (
                                         <TouchableOpacity
@@ -279,19 +276,23 @@ export default function PalProfileScreen() {
                                                 borderColor: isChosen ? '#F97316' : '#F3F4F6',
                                             }}
                                         >
-                                            <Text style={{ fontSize: 12, color: isChosen ? '#F97316' : '#9CA3AF', fontWeight: '500', marginBottom: 4 }}>{item.day}</Text>
+                                            <Text style={{ fontSize: 12, color: isChosen ? '#F97316' : '#9CA3AF', fontWeight: '500', marginBottom: 4 }}>{new Date(item.date).toLocaleDateString('en-GB', { weekday: 'short' })}</Text>
                                             <View style={{ width: 34, height: 34, backgroundColor: isChosen ? '#F97316' : 'transparent', borderRadius: 17, alignItems: 'center', justifyContent: 'center' }}>
-                                                <Text style={{ fontSize: 16, fontWeight: '700', color: isChosen ? 'white' : '#111827' }}>{item.date.split(' ')[0]}</Text>
+                                                <Text style={{ fontSize: 16, fontWeight: '700', color: isChosen ? 'white' : '#111827' }}>{new Date(item.date).getDate()}</Text>
                                             </View>
                                         </TouchableOpacity>
                                     );
-                                })}
+                                }) : (
+                                    <View className="py-4 px-4">
+                                        <Text className="text-gray-400 font-bold text-xs italic">No availability set by Pal</Text>
+                                    </View>
+                                )}
                             </ScrollView>
                         </View>
 
                         <Text style={{ fontSize: 16, fontWeight: '700', color: '#111827', marginBottom: 16 }}>Select a Time</Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-                            {currentDay.slots.map((slot, sIdx) => {
+                            {currentDay?.slots?.map((slot, sIdx) => {
                                 const past = isSlotInPast(currentDay.date, slot);
                                 const active = selectedTimeSlot === slot;
                                 return (
@@ -313,6 +314,9 @@ export default function PalProfileScreen() {
                                     </TouchableOpacity>
                                 );
                             })}
+                            {!currentDay && (
+                                <Text className="text-gray-400 font-bold text-xs italic">Please select a date first</Text>
+                            )}
                         </View>
                     </View>
                 )}
@@ -354,15 +358,14 @@ export default function PalProfileScreen() {
                     </View>
                 )}
 
-                {/* Status Indicator for Current Selection */}
                 {activeBooking && (
-                    <View style={{ backgroundColor: activeBooking.status === 'open' ? '#FFFBEB' : '#ECFDF5', padding: 16, borderRadius: 20, marginTop: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: activeBooking.status === 'open' ? '#FEF3C7' : '#D1FAE5' }}>
-                        <Ionicons name={activeBooking.status === 'open' ? 'time' : 'checkmark-circle'} size={20} color={activeBooking.status === 'open' ? '#D97706' : '#059669'} />
+                    <View style={{ backgroundColor: activeBooking.status === 'pending' ? '#FFFBEB' : '#ECFDF5', padding: 16, borderRadius: 20, marginTop: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: activeBooking.status === 'pending' ? '#FEF3C7' : '#D1FAE5' }}>
+                        <Ionicons name={activeBooking.status === 'pending' ? 'time' : 'checkmark-circle'} size={20} color={activeBooking.status === 'pending' ? '#D97706' : '#059669'} />
                         <View style={{ marginLeft: 12 }}>
-                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeBooking.status === 'open' ? '#D97706' : '#059669' }}>
+                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeBooking.status === 'pending' ? '#D97706' : '#059669' }}>
                                 Appointment {activeBooking.status}
                             </Text>
-                            <Text style={{ fontSize: 10, color: activeBooking.status === 'open' ? '#B45309' : '#065F46' }}>
+                            <Text style={{ fontSize: 10, color: activeBooking.status === 'pending' ? '#B45309' : '#065F46' }}>
                                 Scheduled for {activeBooking.date} at {activeBooking.time}
                             </Text>
                         </View>
@@ -373,7 +376,16 @@ export default function PalProfileScreen() {
             {/* Bottom Actions */}
             <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, backgroundColor: 'white', paddingHorizontal: 20, paddingBottom: Math.max(insets.bottom, 20), paddingTop: 16, borderTopWidth: 1, borderColor: '#F3F4F6', flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <TouchableOpacity
-                    onPress={() => router.push({ pathname: '/(family)/chat/[id]', params: { id: palData.id } })}
+                    onPress={() => {
+                        const userPhone = useAuthStore.getState().user?.phone || 'FAMILY_PHONE';
+                        const convId = useChatStore.getState().getOrCreateConversation(userPhone, {
+                            id: palData.id,
+                            name: palData.name,
+                            role: 'pal',
+                            avatar: palData.image
+                        });
+                        router.push({ pathname: '/(family)/chat/[id]', params: { id: convId } } as any);
+                    }}
                     style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: '#F9FAFB', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F3F4F6', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 }}
                 >
                     <Ionicons name="chatbubble-ellipses-outline" size={24} color="#111827" />
@@ -400,8 +412,38 @@ export default function PalProfileScreen() {
                     </Text>
                 </TouchableOpacity>
             </View>
+            {/* Success Modal */}
+            <Modal visible={bookingSuccess} transparent animationType="fade">
+                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+                    <Animated.View entering={ZoomIn.duration(400)} style={{ backgroundColor: 'white', width: '100%', borderRadius: 40, padding: 32, alignItems: 'center' }}>
+                        <View style={{ width: 100, height: 100, backgroundColor: '#FFF7ED', borderRadius: 50, alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+                            <Ionicons name="checkmark-circle" size={60} color="#F97316" />
+                        </View>
+                        <Text style={{ fontSize: 24, fontWeight: '900', color: '#111827', textAlign: 'center', marginBottom: 12 }}>Booking Request Sent!</Text>
+                        <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>Your request has been sent to {palData.name}. You'll be notified once they accept.</Text>
+
+                        <View style={{ width: '100%', gap: 12 }}>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setBookingSuccess(false);
+                                    router.replace('/(family)/home');
+                                }}
+                                style={{ width: '100%', height: 56, backgroundColor: '#F97316', borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}
+                            >
+                                <Text style={{ color: 'white', fontWeight: '900', fontSize: 14, textTransform: 'uppercase' }}>Back to Home</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setBookingSuccess(false);
+                                }}
+                                style={{ width: '100%', height: 56, backgroundColor: '#F9FAFB', borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: '#F3F4F6' }}
+                            >
+                                <Text style={{ color: '#6B7280', fontWeight: '700', fontSize: 14 }}>View Pal Profile</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </Animated.View>
+                </View>
+            </Modal>
         </View>
     );
 }
-
-

@@ -1,5 +1,7 @@
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
+import { usePalStore } from "@/store/palStore";
+import { useTrackingStore } from "@/store/trackingStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -13,16 +15,18 @@ export default function GigDetailScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
-    const { bookings, acceptGig, isLoading } = useBookingStore();
+    const { bookings, acceptGig, declineGig, isLoading } = useBookingStore();
     const user = useAuthStore(s => s.user);
+    const startTracking = useTrackingStore(s => s.startTracking);
+    const restorePalAvailability = usePalStore(s => s.restorePalAvailability);
 
     const gig = bookings.find(b => b.id === id);
 
     if (!gig) {
         return (
             <View className="flex-1 items-center justify-center p-10 bg-white">
-                <Text className="text-gray-400 font-bold">Gig not found or already accepted.</Text>
-                <TouchableOpacity onPress={() => router.back()} className="mt-4">
+                <Text className="text-gray-400 font-bold">Gig not found or already handled.</Text>
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(pal)/home')} className="mt-4">
                     <Text className="text-emerald-500 font-bold">Go Back</Text>
                 </TouchableOpacity>
             </View>
@@ -34,9 +38,11 @@ export default function GigDetailScreen() {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
 
         try {
-            const result = await acceptGig(gig.id, user.phone || 'PAL_001', user.name || 'Arjun Singh');
+            const result = await acceptGig(gig.id, user.id || 'PAL_001', user.name || 'Arjun Singh');
             if (result.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                // Initialize Tracking
+                startTracking(gig.id);
                 router.replace('/(pal)/active-gig');
             } else {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -48,8 +54,28 @@ export default function GigDetailScreen() {
     };
 
     const handleDecline = () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        router.back();
+        Alert.alert(
+            "Decline Gig",
+            "Are you sure you want to decline this request? This slot will become available for other Pals.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Decline",
+                    style: "destructive",
+                    onPress: async () => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        const result = await declineGig(gig.id);
+                        if (result.success) {
+                            // Restore slot in availability
+                            if (gig.palId && gig.date && gig.time) {
+                                restorePalAvailability(gig.palId, gig.date, gig.time);
+                            }
+                            router.replace('/(pal)/home');
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     return (

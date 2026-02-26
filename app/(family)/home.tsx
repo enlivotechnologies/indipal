@@ -1,8 +1,12 @@
 import { useAuthStore } from "@/store/authStore";
+import { useBookingStore } from "@/store/bookingStore";
+import { useChatStore } from "@/store/chatStore";
 import { useErrandStore } from "@/store/errandStore";
 import { useGigStore } from "@/store/gigStore";
+import { useGroceryStore } from "@/store/groceryStore";
 import { Medication, useHealthStore } from "@/store/healthStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { usePharmacyStore } from "@/store/pharmacyStore";
 import { useServiceStore } from "@/store/serviceStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from "expo-haptics";
@@ -14,13 +18,12 @@ import {
   Image,
   Linking,
   Modal,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, {
   Easing,
@@ -48,15 +51,21 @@ export default function FamilyHomeScreen() {
   const orders = useServiceStore((state) => state.orders);
   const { sosAlerts, resolveSOS } = useErrandStore();
   const { gigs, approveGig, addGig } = useGigStore();
+  const { bookings, isLoading } = useBookingStore();
+  const { orders: groceryOrders, forwardToPal } = useGroceryStore();
   const { unreadCount, fetchNotifications } = useNotificationStore();
+  const { orders: pharmacyOrders } = usePharmacyStore();
 
   useEffect(() => {
     fetchNotifications("family");
   }, [fetchNotifications]);
 
   const activeSOS = sosAlerts.find((a) => a.status === "active");
-  const pendingGrocery = gigs.find(
-    (g) => g.status === "pending_approval" && g.category === "Grocery",
+  const pendingGroceryOrder = groceryOrders.find(
+    (o) => o.status === "sent_to_family"
+  );
+  const pendingPharmacyOrder = pharmacyOrders.find(
+    (o) => o.status === "sent_to_family"
   );
 
   const pendingOrder = orders
@@ -66,7 +75,6 @@ export default function FamilyHomeScreen() {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     )[0];
 
-  const [approvalModal, setApprovalModal] = useState(false);
   const [budget, setBudget] = useState("500");
 
   const [plusMenuOpen, setPlusMenuOpen] = useState(false);
@@ -184,10 +192,10 @@ export default function FamilyHomeScreen() {
   const services = [
     {
       id: "1",
-      title: "Home Nurse",
+      title: "House Nurse",
       subtitle: "Professional Care",
       icon: "person-add",
-      color: "#10B981",
+      color: "#F59E0B",
       image:
         "https://images.unsplash.com/photo-1582750433449-64c3efdf1e6d?auto=format&fit=crop&q=80&w=400",
       route: "/(family)/services/nurse",
@@ -207,7 +215,7 @@ export default function FamilyHomeScreen() {
       title: "Grocery Delivery",
       subtitle: "Fresh Essentials",
       icon: "cart",
-      color: "#06B6D4",
+      color: "#F97316",
       image:
         "https://images.unsplash.com/photo-1604719312563-8912e9223c6a?auto=format&fit=crop&q=80&w=400",
       route: "/(family)/services/grocery",
@@ -217,7 +225,7 @@ export default function FamilyHomeScreen() {
       title: "Pharmacy Order",
       subtitle: "Meds at Doorstep",
       icon: "bandage",
-      color: "#6366F1",
+      color: "#F59E0B",
       image:
         "https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?auto=format&fit=crop&q=80&w=400",
       route: "/(family)/services/pharmacy",
@@ -241,62 +249,6 @@ export default function FamilyHomeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "white" }}>
-      {/* SOS Lively Alert Overlay */}
-      {activeSOS && (
-        <Animated.View
-          entering={FadeInUp}
-          className="bg-red-600 mt-2 mx-4 rounded-3xl overflow-hidden shadow-2xl shadow-red-200"
-        >
-          <LinearGradient colors={["#DC2626", "#B91C1C"]} className="p-5">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center flex-1">
-                <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center border border-white/30">
-                  <Ionicons name="alert-circle" size={28} color="white" />
-                </View>
-                <View className="ml-4 flex-1">
-                  <Text className="text-white font-black text-lg">
-                    EMERGENCY SOS
-                  </Text>
-                  <Text className="text-white/80 text-[10px] font-bold uppercase tracking-widest">
-                    {activeSOS.seniorName} Needs help!
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  Haptics.notificationAsync(
-                    Haptics.NotificationFeedbackType.Success,
-                  );
-                  resolveSOS(activeSOS.id);
-                }}
-                className="bg-white/20 px-4 py-2 rounded-xl border border-white/30"
-              >
-                <Text className="text-white font-black text-[10px] uppercase">
-                  Got it
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            <View className="mt-4 pt-4 border-t border-white/10 flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <Ionicons name="location" size={14} color="white" />
-                <Text className="text-white/90 text-[11px] font-bold ml-1.5">
-                  {activeSOS.location}
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => Linking.openURL(`tel:${linkedSenior.phone}`)}
-                className="bg-white px-5 py-2.5 rounded-full flex-row items-center"
-              >
-                <Ionicons name="call" size={14} color="#DC2626" />
-                <Text className="text-red-700 font-black text-[10px] uppercase tracking-widest ml-1.5">
-                  Emergency Call
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </Animated.View>
-      )}
 
       {/* Header - PERSISTENT & RESPONSIVE */}
       <View
@@ -443,6 +395,63 @@ export default function FamilyHomeScreen() {
             )}
           </LinearGradient>
         </Animated.View>
+        {/* SOS Lively Alert Overlay */}
+        {activeSOS && (
+          <Animated.View
+            entering={FadeInUp}
+            className="bg-red-600 mt-2 mx-4 rounded-3xl overflow-hidden shadow-2xl shadow-red-200"
+          >
+            <LinearGradient colors={["#DC2626", "#B91C1C"]} className="p-5">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center flex-1">
+                  <View className="w-12 h-12 bg-white/20 rounded-2xl items-center justify-center border border-white/30">
+                    <Ionicons name="alert-circle" size={28} color="white" />
+                  </View>
+                  <View className="ml-4 flex-1">
+                    <Text className="text-white font-black text-lg">
+                      EMERGENCY SOS
+                    </Text>
+                    <Text className="text-white/80 text-[10px] font-bold uppercase tracking-widest">
+                      {activeSOS.seniorName} Needs help!
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    Haptics.notificationAsync(
+                      Haptics.NotificationFeedbackType.Success,
+                    );
+                    resolveSOS(activeSOS.id);
+                  }}
+                  className="bg-white/20 px-4 py-2 rounded-xl border border-white/30"
+                >
+                  <Text className="text-white font-black text-[10px] uppercase">
+                    Got it
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <View className="mt-4 pt-4 border-t border-white/10 flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <Ionicons name="location" size={14} color="white" />
+                  <Text className="text-white/90 text-[11px] font-bold ml-1.5">
+                    {activeSOS.location}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => Linking.openURL(`tel:${linkedSenior.phone}`)}
+                  className="bg-white px-5 py-2.5 rounded-full flex-row items-center"
+                >
+                  <Ionicons name="call" size={14} color="#DC2626" />
+                  <Text className="text-red-700 font-black text-[10px] uppercase tracking-widest ml-1.5">
+                    Emergency Call
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
+          </Animated.View>
+        )}
+
 
         {/* Priority Alerts - Real-time Senior Actions */}
         <Animated.View
@@ -509,13 +518,13 @@ export default function FamilyHomeScreen() {
             </TouchableOpacity>
           ) : null}
 
-          {pendingGrocery ? (
+          {pendingGroceryOrder ? (
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                setApprovalModal(true);
+                router.push("/(family)/services/grocery");
               }}
-              className="bg-white p-6 rounded-[24px] border-2 border-orange-400 shadow-xl shadow-orange-100 flex-row items-center"
+              className="bg-white p-6 rounded-[24px] border-2 border-orange-400 shadow-xl shadow-orange-100 flex-row items-center mb-4"
             >
               <View className="w-12 h-12 rounded-2xl items-center justify-center bg-orange-100 border border-orange-200">
                 <Ionicons name="cart" size={24} color="#F59E0B" />
@@ -535,14 +544,48 @@ export default function FamilyHomeScreen() {
                   className="text-gray-500 text-[11px] leading-4"
                   numberOfLines={2}
                 >
-                  {pendingGrocery.seniorName} has requested{" "}
-                  {pendingGrocery.items.length} items. Tap to approve and assign
-                  a Pal.
+                  {pendingGroceryOrder.seniorName} has requested{" "}
+                  {pendingGroceryOrder.items.length} items. Tap to approve and
+                  forward to a Pal.
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
             </TouchableOpacity>
-          ) : pendingOrder ? (
+          ) : null}
+
+          {pendingPharmacyOrder ? (
+            <TouchableOpacity
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                router.push("/(family)/services/pharmacy");
+              }}
+              className="bg-white p-6 rounded-[24px] border-2 border-orange-500 shadow-xl shadow-orange-100 flex-row items-center mb-4"
+            >
+              <View className="w-12 h-12 rounded-2xl items-center justify-center bg-orange-50 border border-orange-200">
+                <Ionicons name="medical" size={24} color="#F97316" />
+              </View>
+              <View className="flex-1 ml-4 pr-4">
+                <View className="flex-row items-center justify-between mb-1">
+                  <Text className="text-gray-900 font-bold text-sm">
+                    Pharmacy Request
+                  </Text>
+                  <View className="bg-orange-500 px-2 py-0.5 rounded-full">
+                    <Text className="text-white text-[8px] font-black uppercase">
+                      Confirm Meds
+                    </Text>
+                  </View>
+                </View>
+                <Text
+                  className="text-gray-500 text-[11px] leading-4"
+                  numberOfLines={2}
+                >
+                  {pendingPharmacyOrder.seniorName} needs {pendingPharmacyOrder.items.length} medicines. Tap to pay and notify Pal.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#F97316" />
+            </TouchableOpacity>
+          ) : null}
+          {pendingOrder ? (
             <TouchableOpacity
               onPress={() =>
                 router.push({
@@ -714,11 +757,17 @@ export default function FamilyHomeScreen() {
                 <TouchableOpacity
                   onPress={(e) => {
                     e.stopPropagation();
-                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    const userPhone = useAuthStore.getState().user?.phone || 'FAMILY_PHONE';
+                    const convId = useChatStore.getState().getOrCreateConversation(userPhone, {
+                      id: 'PAL_ARJUN',
+                      name: 'Arjun Singh',
+                      role: 'pal',
+                      avatar: 'https://i.pravatar.cc/100?u=arjun'
+                    });
                     router.push({
                       pathname: "/(family)/chat/[id]",
-                      params: { id: "3" },
-                    });
+                      params: { id: convId },
+                    } as any);
                   }}
                   className="bg-white w-10 h-10 rounded-xl items-center justify-center border border-gray-100 shadow-sm"
                 >
@@ -874,9 +923,16 @@ export default function FamilyHomeScreen() {
 
         {/* Quick Services Grid */}
         <View className="mb-10">
-          <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">
-            Quick Orchestrations
-          </Text>
+          <View className="flex-row justify-between items-center mb-6 px-1">
+            <Text className="text-xs font-black text-gray-400 uppercase tracking-widest">
+              Quick Orchestrations
+            </Text>
+            <TouchableOpacity onPress={() => router.push("/(family)/care")}>
+              <Text className="text-orange-600 text-[10px] font-black uppercase">
+                View All
+              </Text>
+            </TouchableOpacity>
+          </View>
           <View className="flex-row flex-wrap justify-between">
             {services.map((service, idx) => (
               <Animated.View
@@ -1247,111 +1303,6 @@ export default function FamilyHomeScreen() {
         </View>
       </Animated.View>
 
-      {/* Grocery Approval Modal */}
-      <Modal
-        visible={approvalModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setApprovalModal(false)}
-      >
-        <View className="flex-1 bg-black/50 justify-end">
-          <View className="bg-white rounded-t-[40px] p-8">
-            <View className="flex-row justify-between items-center mb-8">
-              <View>
-                <Text className="text-gray-400 font-bold text-[10px] uppercase tracking-widest mb-1">
-                  Review Request
-                </Text>
-                <Text className="text-gray-900 font-black text-2xl">
-                  Grocery Order
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => setApprovalModal(false)}
-                className="w-10 h-10 bg-gray-100 rounded-full items-center justify-center"
-              >
-                <Ionicons name="close" size={20} color="#374151" />
-              </TouchableOpacity>
-            </View>
-
-            {pendingGrocery && (
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                className="max-h-[60vh]"
-              >
-                <View className="bg-orange-50 p-6 rounded-[32px] border border-orange-100 mb-8">
-                  <Text className="text-orange-900 font-black text-xs uppercase mb-4 tracking-widest">
-                    Requested Items
-                  </Text>
-                  {pendingGrocery.items.map((item, idx) => (
-                    <View
-                      key={idx}
-                      className="flex-row items-center justify-between mb-3 last:mb-0"
-                    >
-                      <View className="flex-row items-center">
-                        <View className="w-2 h-2 bg-orange-400 rounded-full mr-3" />
-                        <Text className="text-gray-800 font-bold">
-                          {item.name}
-                        </Text>
-                      </View>
-                      <Text className="text-gray-400 font-bold text-xs">
-                        {item.quantity}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-
-                <View className="mb-8">
-                  <Text className="text-gray-400 font-bold text-xs uppercase mb-4 tracking-widest ml-1">
-                    Set Max Budget (₹)
-                  </Text>
-                  <View className="flex-row items-center bg-gray-50 p-6 rounded-[24px] border border-gray-100">
-                    <Text className="text-gray-900 font-black text-xl mr-2">
-                      ₹
-                    </Text>
-                    <TextInput
-                      value={budget}
-                      onChangeText={setBudget}
-                      keyboardType="numeric"
-                      className="flex-1 text-gray-900 font-black text-xl"
-                      placeholder="Enter amount"
-                    />
-                  </View>
-                </View>
-
-                <View className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100 flex-row items-center mb-8">
-                  <View className="w-10 h-10 bg-indigo-500 rounded-xl items-center justify-center">
-                    <Ionicons name="wallet" size={20} color="white" />
-                  </View>
-                  <View className="ml-4 flex-1">
-                    <Text className="text-indigo-900 font-black text-sm">
-                      Enlivo Secure Pay
-                    </Text>
-                    <Text className="text-indigo-500 font-bold text-[10px] uppercase">
-                      Garanteed from Wallet
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    Haptics.notificationAsync(
-                      Haptics.NotificationFeedbackType.Success,
-                    );
-                    approveGig(pendingGrocery.id, { budget: parseInt(budget) });
-                    setApprovalModal(false);
-                  }}
-                  className="bg-orange-500 h-20 rounded-[28px] items-center justify-center shadow-xl shadow-orange-200"
-                >
-                  <Text className="text-white font-black text-lg uppercase tracking-widest font-nunito">
-                    Confirm Order
-                  </Text>
-                </TouchableOpacity>
-                <View className="h-10" />
-              </ScrollView>
-            )}
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 }
@@ -1460,13 +1411,12 @@ function PulseMarker() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   header: {
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
   },
   tabBar: {
-    ...(Platform.OS === "ios" && { backdropFilter: "blur(20px)" }),
+    // Standard styles only
   },
 });

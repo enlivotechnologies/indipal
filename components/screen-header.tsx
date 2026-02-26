@@ -20,7 +20,7 @@ export default function ScreenHeader({ title, showBack = true, rightElement }: S
                 <View style={styles.leftContainer}>
                     {showBack && (
                         <TouchableOpacity
-                            onPress={() => router.back()}
+                            onPress={() => router.canGoBack() ? router.back() : null}
                             style={styles.backBtn}
                             activeOpacity={0.7}
                         >

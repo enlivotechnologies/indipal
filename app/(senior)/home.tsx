@@ -2,13 +2,14 @@ import { useAuthStore } from '@/store/authStore';
 import { useErrandStore } from '@/store/errandStore';
 import { useHealthStore } from '@/store/healthStore';
 import { useNotificationStore } from '@/store/notificationStore';
+import { usePharmacyStore } from '@/store/pharmacyStore';
 import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
-import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -114,12 +115,14 @@ export default function SeniorHomeScreen() {
   const { fetchNotifications, unreadCount, notifications: storeNotifications } = useNotificationStore();
   const { errands } = useErrandStore();
   const orders = useServiceStore((state) => state.orders);
+  const { orders: pharmacyOrders } = usePharmacyStore();
 
   useEffect(() => {
     fetchNotifications('senior');
   }, [fetchNotifications]);
 
   const activeErrand = errands.find(e => e.status === 'in-progress');
+  const activePharmacyOrder = pharmacyOrders.find(o => ['sent_to_family', 'processing', 'accepted'].includes(o.status));
   const unreadNotifications = unreadCount || storeNotifications.filter(n => !n.isRead).length;
 
   const activeMeds = medications.filter(m => m.status === 'active');
@@ -308,9 +311,11 @@ export default function SeniorHomeScreen() {
             <View className="ml-5 flex-1 pr-4">
               <Text className="text-indigo-400 text-[10px] font-black uppercase tracking-[3px] mb-1">Smart Pulse</Text>
               <Text className="text-gray-900 font-bold text-base leading-tight" numberOfLines={2}>
-                {storeNotifications.length > 0
-                  ? storeNotifications[0].message
-                  : "All systems normal. You are well cared for today."}
+                {activePharmacyOrder
+                  ? `Pharmacy: Order ${activePharmacyOrder.status.replace(/_/g, ' ')}...`
+                  : storeNotifications.length > 0
+                    ? storeNotifications[0].message
+                    : "All systems normal. You are well cared for today."}
               </Text>
             </View>
 
@@ -324,7 +329,7 @@ export default function SeniorHomeScreen() {
             icon="heart"
             label="Health"
             subtitle="Vital Trends"
-            color="#10B981"
+            color="#A855F7"
             onPress={() => router.push('/(senior)/health')}
             delay={200}
           />
@@ -332,7 +337,7 @@ export default function SeniorHomeScreen() {
             icon="medical"
             label="Meds"
             subtitle="Daily Dose"
-            color="#6366F1"
+            color="#A855F7"
             onPress={() => router.push('/(senior)/medications' as any)}
             delay={300}
           />
@@ -340,17 +345,33 @@ export default function SeniorHomeScreen() {
             icon="cart"
             label="Grocery"
             subtitle="Request Items"
-            color="#F59E0B"
-            onPress={() => router.push('/(senior)/grocery')}
+            color="#A855F7"
+            onPress={() => router.push('/(senior)/services/grocery')}
             delay={400}
           />
           <ServiceCard
-            icon="happy"
-            label="Mood"
-            subtitle="Daily Log"
-            color="#FB7185"
-            onPress={() => router.push('/(senior)/mood' as any)}
+            icon="bandage"
+            label="Pharmacy"
+            subtitle="Order Meds"
+            color="#A855F7"
+            onPress={() => router.push('/(senior)/services/pharmacy' as any)}
             delay={500}
+          />
+          <ServiceCard
+            icon="person-add"
+            label="Nurse"
+            subtitle="Home Care"
+            color="#A855F7"
+            onPress={() => router.push('/(senior)/services/nurse' as any)}
+            delay={600}
+          />
+          <ServiceCard
+            icon="home"
+            label="Help"
+            subtitle="House Aid"
+            color="#A855F7"
+            onPress={() => router.push('/(senior)/services/house-help' as any)}
+            delay={700}
           />
         </View>
 
@@ -539,7 +560,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F3F4F6',
   },
   tabBar: {
-    ...(Platform.OS === 'ios' && { backdropFilter: 'blur(20px)' }),
+    // Standard styles only
   },
   premiumProgressContainer: {
     width: 65,

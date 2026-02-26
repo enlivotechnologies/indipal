@@ -40,6 +40,7 @@ export interface User {
   specialization?: string[];
   availableDays?: string[];
   timeSlots?: { from: string; to: string };
+  availability?: { date: string; slots: string[] }[];
   workingRadius?: number;
   liveInOption?: boolean;
   governmentId?: string;
@@ -102,6 +103,7 @@ interface AuthState {
   updateRole: (role: UserRole) => void;
   setPhone: (phone: string) => void;
   updateUser: (data: Partial<User>) => void;
+  updateAvailability: (availability: { date: string; slots: string[] }[]) => void;
   completeProfile: (data: Partial<User>) => void;
   logout: () => void;
   setLoaded: (loaded: boolean) => void;
@@ -110,6 +112,7 @@ interface AuthState {
   withdrawFunds: (amount: number) => Promise<{ success: boolean; message: string }>;
   createSupportTicket: (ticket: any) => Promise<{ success: boolean; id: string }>;
   uploadVerificationDoc: (doc: any) => Promise<{ success: boolean }>;
+  deductBalance: (amount: number, title: string) => Promise<{ success: boolean; message: string }>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -132,12 +135,22 @@ export const useAuthStore = create<AuthState>()(
         set((state) => ({
           user: state.user ? { ...state.user, ...data } : data
         })),
+      updateAvailability: (availability) =>
+        set((state) => ({
+          user: state.user ? { ...state.user, availability } : { availability } as any
+        })),
       completeProfile: (data) =>
         set((state) => {
           const updatedUser: User = state.user ? { ...state.user, ...data } : data;
 
           // Initial Pal Mock Data if role is pal
           if (updatedUser.role === 'pal') {
+            updatedUser.id = updatedUser.id || 'PAL001';
+            updatedUser.availability = updatedUser.availability || [
+              { date: '2026-02-26', slots: ['09:00 AM - 12:00 PM', '03:00 PM - 06:00 PM'] },
+              { date: '2026-02-27', slots: ['10:00 AM - 01:00 PM', '02:00 PM - 05:00 PM'] },
+              { date: '2026-02-28', slots: ['11:00 AM - 02:00 PM'] },
+            ];
             updatedUser.walletBalance = updatedUser.walletBalance ?? 8400;
             updatedUser.totalEarnings = updatedUser.totalEarnings ?? 12500;
             updatedUser.totalWithdrawn = updatedUser.totalWithdrawn ?? 4100;
@@ -153,6 +166,9 @@ export const useAuthStore = create<AuthState>()(
               { id: 'DOC004', documentType: 'police_verification', verificationStatus: 'Rejected', uploadDate: '17 Feb, 2026', fileUrl: 'https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=400', adminRemarks: 'Image is blurry. Please upload a high-resolution scan.' },
             ];
             updatedUser.supportTickets = updatedUser.supportTickets ?? [];
+          } else if (updatedUser.role === 'family') {
+            updatedUser.walletBalance = updatedUser.walletBalance ?? 15000; // Gift them some testing money
+            updatedUser.transactions = updatedUser.transactions ?? [];
           }
 
           return {
@@ -166,6 +182,33 @@ export const useAuthStore = create<AuthState>()(
         hasCompletedProfile: false
       }),
       setLoaded: (loaded) => set({ isLoaded: loaded }),
+
+      deductBalance: async (amount: number, title: string) => {
+        const { user } = get();
+        if (!user) return { success: false, message: 'User not logged in' };
+
+        const currentBalance = user.walletBalance || 0;
+        if (currentBalance < amount) return { success: false, message: 'Insufficient wallet balance' };
+
+        const newTransaction = {
+          id: `PAY${Math.random().toString(36).substr(2, 7).toUpperCase()}`,
+          type: 'withdrawal' as const,
+          amount: amount,
+          title: title,
+          date: 'Just now',
+          status: 'In Escrow' as const
+        };
+
+        set((state) => ({
+          user: state.user ? {
+            ...state.user,
+            walletBalance: currentBalance - amount,
+            transactions: [newTransaction, ...(state.user.transactions || [])]
+          } : null
+        }));
+
+        return { success: true, message: 'Payment secured in Escrow' };
+      },
 
       withdrawFunds: async (amount) => {
         const { user } = get();

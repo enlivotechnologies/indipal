@@ -137,6 +137,30 @@ export default function SeniorLayout() {
                         name="notification-detail"
                         options={{ title: "Notification Detail", href: null }}
                     />
+                    <Tabs.Screen
+                        name="services/nurse"
+                        options={{ title: "Nurse Booking", href: null }}
+                    />
+                    <Tabs.Screen
+                        name="services/house-help"
+                        options={{ title: "House Help", href: null }}
+                    />
+                    <Tabs.Screen
+                        name="services/grocery"
+                        options={{ title: "Grocery", href: null }}
+                    />
+                    <Tabs.Screen
+                        name="services/pharmacy"
+                        options={{ title: "Pharmacy", href: null }}
+                    />
+                    <Tabs.Screen
+                        name="services/care-service"
+                        options={{ title: "Care Service", href: null }}
+                    />
+                    <Tabs.Screen
+                        name="services/errands"
+                        options={{ title: "Errands", href: null }}
+                    />
                 </Tabs>
 
                 {/* Persistent SOS Floating Button */}

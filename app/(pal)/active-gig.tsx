@@ -1,30 +1,34 @@
 import { BottomTab } from "@/components/pal/BottomTab";
 import { GigChecklist } from '@/components/pal/GigChecklist';
+import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
 import { useChatStore } from "@/store/chatStore";
 import { useGigStore } from '@/store/gigStore';
+import { useNotificationStore } from "@/store/notificationStore";
+import { useTrackingStore } from "@/store/trackingStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
-
 
 export default function PalActiveGigPage() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { bookings, updateGigStatus, completeGig, updateServiceStatus } = useBookingStore();
     const { gigs, updateGigStatus: updateErrandStatus } = useGigStore();
+    const user = useAuthStore((state) => state.user);
+    const { activeTrackings, updateStatus: updateTrackingStatus, startTracking } = useTrackingStore();
 
     // Find the current active gig from either store
-    const activeBooking = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
+    const activeBooking = bookings.find(b => b.palId === user?.id && ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
     const activeErrand = gigs.find(g => ['approved_and_assigned', 'matched', 'active'].includes(g.status));
 
     const activeGig = activeBooking || activeErrand;
+    const isTracking = activeGig ? activeTrackings[activeGig.id]?.status !== 'idle' : false;
 
     const handleAction = async () => {
         if (!activeGig) return;
@@ -33,13 +37,17 @@ export default function PalActiveGigPage() {
         if (activeBooking) {
             if (activeGig.status === 'accepted') {
                 await updateGigStatus(activeGig.id, 'on_the_way');
+                updateTrackingStatus(activeGig.id, 'en_route');
             } else if (activeGig.status === 'on_the_way') {
                 await updateGigStatus(activeGig.id, 'on_site');
+                updateTrackingStatus(activeGig.id, 'arrived');
             } else if (activeGig.status === 'on_site') {
                 await updateGigStatus(activeGig.id, 'in_progress');
+                updateTrackingStatus(activeGig.id, 'active');
             } else if (activeGig.status === 'in_progress') {
                 const res = await completeGig(activeGig.id);
                 if (res.success) {
+                    updateTrackingStatus(activeGig.id, 'completed');
                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     router.replace('/(pal)/home');
                 }
@@ -51,6 +59,29 @@ export default function PalActiveGigPage() {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 router.replace('/(pal)/home');
             }
+        }
+    };
+
+    const toggleLocationSharing = (val: boolean) => {
+        if (!activeGig) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (val) {
+            startTracking(activeGig.id);
+            updateTrackingStatus(activeGig.id, activeGig.status === 'accepted' ? 'idle' : activeGig.status === 'on_the_way' ? 'en_route' : 'active');
+
+            // Notify Family
+            const palName = user?.name || "Your Pal";
+            const clientName = (activeGig as any).clientName || (activeGig as any).seniorName || "the senior";
+
+            useNotificationStore.getState().addNotification({
+                title: "Location Sharing Started",
+                message: `${palName} has started sharing their live location for ${clientName}'s session.`,
+                type: "task",
+                receiverRole: "family",
+                actionRoute: "/(family)/tracking",
+            });
+        } else {
+            updateTrackingStatus(activeGig.id, 'idle');
         }
     };
 
@@ -102,7 +133,8 @@ export default function PalActiveGigPage() {
                 <View className="flex-row items-center gap-x-2">
                     <TouchableOpacity
                         onPress={() => {
-                            const convId = useChatStore.getState().getOrCreateConversation({
+                            const userPhone = useAuthStore.getState().user?.phone || 'SYSTEM';
+                            const convId = useChatStore.getState().getOrCreateConversation(userPhone, {
                                 id: activeGig.familyId || `FAM_${(activeGig as any).clientName || (activeGig as any).seniorName}`,
                                 name: (activeGig as any).clientName || (activeGig as any).seniorName || 'Family',
                                 role: 'family'
@@ -120,11 +152,21 @@ export default function PalActiveGigPage() {
                 <Animated.View entering={FadeInUp.duration(600)} className="bg-gray-900 p-8 rounded-[40px] shadow-2xl relative overflow-hidden mb-10">
                     <View className="flex-row items-center mb-8">
                         <View className="w-16 h-16 bg-emerald-500/20 rounded-2xl items-center justify-center overflow-hidden">
-                            <Ionicons name="person" size={32} color="white" />
+                            <Ionicons
+                                name={((activeGig as any).type === 'nurse' ? 'medkit' :
+                                    (activeGig as any).type === 'house_help' ? 'home' :
+                                        (activeGig as any).type === 'grocery' ? 'cart' :
+                                            (activeGig as any).type === 'pharmacy' ? 'medical' :
+                                                (activeGig as any).type === 'errand' ? 'briefcase' : 'person') as any}
+                                size={32}
+                                color="white"
+                            />
                         </View>
-                        <View className="ml-4">
-                            <Text className="text-white font-black text-xl">{(activeGig as any).clientName || (activeGig as any).seniorName}</Text>
-                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{(activeGig as any).title || `${(activeGig as any).category || 'Service'} Pickup`}</Text>
+                        <View className="ml-4 flex-1">
+                            <Text className="text-white font-black text-xl" numberOfLines={1}>{(activeGig as any).clientName || (activeGig as any).seniorName}</Text>
+                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest" numberOfLines={1}>
+                                {(activeGig as any).title || `${(activeGig as any).category || (activeGig as any).type || 'Service'} Session`}
+                            </Text>
                         </View>
                     </View>
 
@@ -281,11 +323,34 @@ export default function PalActiveGigPage() {
                     </View>
                 ))}
 
+                {/* Location Sharing Toggle */}
+                {activeBooking && activeGig.status !== 'completed' && (
+                    <Animated.View entering={FadeInUp.delay(300)} className="bg-emerald-50 p-6 rounded-[32px] border border-emerald-100 mb-6">
+                        <View className="flex-row items-center justify-between">
+                            <View className="flex-row items-center flex-1 pr-4">
+                                <View className="w-10 h-10 bg-emerald-100 rounded-xl items-center justify-center mr-3">
+                                    <Ionicons name="location" size={20} color="#059669" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="text-emerald-900 font-bold text-sm">Live Location Sharing</Text>
+                                    <Text className="text-emerald-600/60 text-[10px] font-medium leading-4">Keep this ON so the family can track your arrival in real-time.</Text>
+                                </View>
+                            </View>
+                            <Switch
+                                value={isTracking}
+                                onValueChange={toggleLocationSharing}
+                                trackColor={{ false: '#D1D5DB', true: '#10B981' }}
+                                thumbColor="#FFFFFF"
+                            />
+                        </View>
+                    </Animated.View>
+                )}
+
                 {/* Main Action Button Logic */}
                 {activeGig.status !== 'completed' && (
                     <TouchableOpacity
                         onPress={handleAction}
-                        className={`mt-10 ${btn.bg} py-6 rounded-[32px] items-center shadow-2xl overflow-hidden ${btn.disabled ? 'opacity-50' : ''}`}
+                        className={`mt-4 ${btn.bg} py-6 rounded-[32px] items-center shadow-2xl overflow-hidden ${btn.disabled ? 'opacity-50' : ''}`}
                         disabled={btn.disabled}
                     >
                         <LinearGradient

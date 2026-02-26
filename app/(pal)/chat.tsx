@@ -24,7 +24,7 @@ export default function ChatListScreen() {
     }, [user, fetchConversations]);
 
     const filteredConversations = conversations.filter(conv => {
-        return (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
+        return conv.ownerId === user?.phone && (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
     });
 
     const formatTime = (timestamp?: number) => {

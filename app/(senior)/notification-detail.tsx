@@ -20,7 +20,7 @@ export default function SeniorNotificationDetailScreen() {
         return (
             <View className="flex-1 bg-white items-center justify-center p-6">
                 <Text className="text-gray-400 font-black text-xl">Message not found</Text>
-                <TouchableOpacity onPress={() => router.back()} className="mt-8 bg-indigo-50 px-10 py-4 rounded-full">
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(senior)/notifications' as any)} className="mt-8 bg-indigo-50 px-10 py-4 rounded-full">
                     <Text className="text-indigo-600 font-black text-lg">Go Back</Text>
                 </TouchableOpacity>
             </View>
@@ -39,7 +39,7 @@ export default function SeniorNotificationDetailScreen() {
                 ]}
                 className="px-6 flex-row items-center bg-white"
             >
-                <TouchableOpacity onPress={() => router.back()} className="mr-6 w-12 h-12 bg-gray-50 rounded-2xl items-center justify-center">
+                <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/(senior)/notifications' as any)} className="mr-6 w-12 h-12 bg-gray-50 rounded-2xl items-center justify-center">
                     <Ionicons name="arrow-back" size={32} color={BRAND_PURPLE} />
                 </TouchableOpacity>
                 <Text className="text-2xl font-black text-gray-900">Health Message</Text>
@@ -73,7 +73,7 @@ export default function SeniorNotificationDetailScreen() {
                     </View>
 
                     <TouchableOpacity
-                        onPress={() => router.back()}
+                        onPress={() => router.canGoBack() ? router.back() : router.replace('/(senior)/notifications' as any)}
                         className="bg-gray-900 py-8 rounded-[40px] items-center shadow-2xl"
                     >
                         <Text className="text-white font-black text-xl uppercase tracking-widest">Done</Text>

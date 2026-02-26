@@ -1,3 +1,5 @@
+import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -85,11 +87,27 @@ export default function CaretakerProfileScreen() {
                         delay={300}
                     />
                     <ActionButton
+                        icon="chatbubbles"
+                        label="Chat"
+                        color="#F59E0B"
+                        onPress={() => {
+                            const userPhone = useAuthStore.getState().user?.phone || 'FAMILY_PHONE';
+                            const convId = useChatStore.getState().getOrCreateConversation(userPhone, {
+                                id: 'RAVI_PAL',
+                                name: 'Ravi Kumar',
+                                role: 'pal',
+                                avatar: 'https://i.pravatar.cc/500?u=Ravi'
+                            });
+                            router.push({ pathname: '/(family)/chat/[id]', params: { id: convId } } as any);
+                        }}
+                        delay={400}
+                    />
+                    <ActionButton
                         icon="videocam"
                         label="Video"
                         color="#3B82F6"
                         onPress={() => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy)}
-                        delay={400}
+                        delay={500}
                     />
 
                 </View>
