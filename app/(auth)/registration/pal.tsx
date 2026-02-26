@@ -38,7 +38,7 @@ export default function RegisterPal() {
 
         // Map local docs to the store's structure
         const mappedDocs = formData.verificationDocuments.map(d => ({
-            id: Math.random().toString(36).substr(2, 9).toUpperCase(),
+            id: Math.random().toString(36).substring(2, 11).toUpperCase(),
             documentType: d.documentType as any,
             verificationStatus: 'Pending' as const,
             fileUrl: d.fileUrl,
@@ -57,7 +57,7 @@ export default function RegisterPal() {
         if (!uri) return;
 
         setIsUploading(type);
-        const url = await uploadFile(uri);
+        const url = await uploadFile(uri.uri);
         setIsUploading(null);
 
         if (type === 'profile_photo') {

@@ -69,7 +69,7 @@ export default function GigDetailScreen() {
                     <View className="w-32 h-32 bg-emerald-50 rounded-[40px] mb-4 items-center justify-center overflow-hidden border border-emerald-100">
                         <Ionicons name="person" size={48} color={BRAND_GREEN} />
                     </View>
-                    <Text className="text-2xl font-black text-gray-900">{gig.userName}</Text>
+                    <Text className="text-2xl font-black text-gray-900">{gig.clientName}</Text>
                     <Text className="text-emerald-500 font-black uppercase text-[10px] tracking-widest mt-1">Care Opportunity</Text>
                 </View>
 
@@ -90,6 +90,24 @@ export default function GigDetailScreen() {
                         <DetailItem icon="location" label="Location" value={gig.location.address} />
                         <DetailItem icon="list" label="Tasks" value={gig.requirements?.join(', ') || 'General Care'} />
                     </View>
+
+                    {gig.services && gig.services.length > 0 && (
+                        <View className="mt-8 pt-8 border-t border-gray-200">
+                            <Text className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-4">Included Services</Text>
+                            {gig.services.map((s, i) => (
+                                <View key={s.id} className="flex-row items-center mb-4 last:mb-0">
+                                    <View className="w-8 h-8 rounded-full bg-emerald-50 items-center justify-center border border-emerald-100">
+                                        <Text className="text-emerald-600 font-black text-[10px]">{i + 1}</Text>
+                                    </View>
+                                    <View className="ml-4 flex-1">
+                                        <Text className="text-gray-900 font-bold text-xs">{s.title}</Text>
+                                        <Text className="text-gray-400 text-[8px] font-bold uppercase tracking-widest">{s.duration}</Text>
+                                    </View>
+                                    <Text className="text-gray-900 font-bold text-xs">₹{s.price}</Text>
+                                </View>
+                            ))}
+                        </View>
+                    )}
 
                     {gig.description && (
                         <View className="mt-8 pt-8 border-t border-gray-200">

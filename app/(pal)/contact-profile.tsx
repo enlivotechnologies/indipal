@@ -1,4 +1,4 @@
-import { useChatStore } from '@/store/chatStore';
+import { Message, useChatStore } from '@/store/chatStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,15 +15,14 @@ export default function ContactProfileScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { id, participantId } = useLocalSearchParams();
-    const { conversations, messages, toggleBlockUser, blockedUserIds } = useChatStore();
-    const isBlocked = blockedUserIds.includes(participantId as string);
+    const { conversations, toggleBlockUser, blockedUserIds } = useChatStore();
+    const conversation = conversations.find(c => c.id === id);
+    const isBlocked = blockedUserIds.includes(conversation?.contactId || (participantId as string));
 
     const [activeTab, setActiveTab] = useState<'Media' | 'Files' | 'Links'>('Media');
     const [showReportModal, setShowReportModal] = useState(false);
 
-    const conversation = conversations.find(c => c.id === id);
-    const participant = conversation?.participants.find(p => p.id === participantId);
-    const chatMessages = messages[id as string] || [];
+    const chatMessages: Message[] = (conversation?.messages || []);
 
     const mediaMessages = useMemo(() => chatMessages.filter(m => m.type === 'image'), [chatMessages]);
     const fileMessages = useMemo(() => chatMessages.filter(m => m.type === 'file'), [chatMessages]);
@@ -50,7 +49,7 @@ export default function ContactProfileScreen() {
         Alert.alert("Report Submitted", "Thank you for your feedback. Our safety team will review this contact.");
     };
 
-    if (!participant) return null;
+    if (!conversation) return null;
 
     return (
         <View style={{ flex: 1, backgroundColor: 'white' }}>
@@ -58,17 +57,19 @@ export default function ContactProfileScreen() {
                 {/* Hero Section */}
                 <View className="relative">
                     <View style={{ width: width, height: width * 1.1 }} className="bg-gray-100 items-center justify-center">
-                        {participant.avatar ? (
+                        {conversation.contactAvatar ? (
                             <Image
-                                source={{ uri: participant.avatar }}
+                                source={{ uri: conversation.contactAvatar }}
                                 style={{ width: width, height: width * 1.1 }}
                             />
                         ) : (
-                            <Ionicons name="person" size={120} color="#D1D5DB" />
+                            <View className="w-full h-full bg-slate-200 items-center justify-center">
+                                <Ionicons name="person" size={120} color="#94A3B8" />
+                            </View>
                         )}
                     </View>
                     <LinearGradient
-                        colors={['rgba(0,0,0,0.6)', 'transparent', 'transparent', 'white']}
+                        colors={['rgba(0,0,0,0.4)', 'transparent', 'transparent', 'white']}
                         className="absolute inset-0"
                     />
 
@@ -88,8 +89,8 @@ export default function ContactProfileScreen() {
                                 <View className="w-2 h-2 bg-emerald-500 rounded-full mr-2 shadow-sm shadow-emerald-500" />
                                 <Text className="text-emerald-500 font-black text-[10px] uppercase tracking-widest">Available</Text>
                             </View>
-                            <Text className="text-4xl font-black text-gray-900 mb-1">{participant.name}</Text>
-                            <Text className="text-gray-500 font-bold text-lg uppercase tracking-tight">{participant.role} • Trusted Member</Text>
+                            <Text className="text-4xl font-black text-gray-900 mb-1">{conversation.contactName}</Text>
+                            <Text className="text-gray-500 font-bold text-lg uppercase tracking-tight">{conversation.contactRole} • Trusted Member</Text>
                         </Animated.View>
                     </View>
                 </View>
@@ -116,7 +117,7 @@ export default function ContactProfileScreen() {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
                             router.push({
                                 pathname: '/(pal)/call',
-                                params: { type: 'video', partnerName: participant.name, partnerAvatar: participant.avatar || '' }
+                                params: { type: 'video', partnerName: conversation.contactName, partnerAvatar: conversation.contactAvatar || '' }
                             } as any);
                         }}
                         delay={300}
@@ -135,12 +136,12 @@ export default function ContactProfileScreen() {
                         onPress={() => {
                             if (isBlocked) {
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                                toggleBlockUser(participantId as string);
+                                toggleBlockUser(conversation.contactId);
                             } else {
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                                 Alert.alert("Block User", "Are you sure you want to block this user?", [
                                     { text: "Cancel", style: "cancel" },
-                                    { text: "Block", style: "destructive", onPress: () => toggleBlockUser(participantId as string) }
+                                    { text: "Block", style: "destructive", onPress: () => toggleBlockUser(conversation.contactId) }
                                 ]);
                             }
                         }}
@@ -152,8 +153,8 @@ export default function ContactProfileScreen() {
                 <View className="px-6 py-10">
                     <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Contact Information</Text>
                     <DetailRow icon="phone-portrait-outline" label="Phone" value="+91 98765 43210" />
-                    <DetailRow icon="mail-outline" label="Email" value={`${participant.name.toLowerCase().replace(' ', '.')}@enlivo.care`} />
-                    <DetailRow icon="briefcase-outline" label="Related Gig" value={conversation?.relatedGigId || "Private Connection"} />
+                    <DetailRow icon="mail-outline" label="Email" value={`${(conversation.contactName || 'User').toLowerCase().replace(' ', '.')}@enlivo.care`} />
+                    <DetailRow icon="briefcase-outline" label="Related Gig" value={conversation.id.startsWith('CONV_') ? "Private Connection" : conversation.id} />
                     <DetailRow icon="star-outline" label="Rating" value="4.9 (24 Reviews)" />
                 </View>
 
@@ -247,7 +248,7 @@ export default function ContactProfileScreen() {
                     >
                         <View className="w-12 h-1.5 bg-gray-100 rounded-full self-center mb-8" />
                         <Text className="text-2xl font-black text-gray-900 mb-2">Report Profile</Text>
-                        <Text className="text-gray-500 font-medium mb-8">Tell us why you're reporting {participant.name}. Your report is anonymous.</Text>
+                        <Text className="text-gray-500 font-medium mb-8">Tell us why you're reporting {conversation.contactName}. Your report is anonymous.</Text>
 
                         <View className="gap-y-3">
                             {['Spam or Harassment', 'Inappropriate Content', 'Suspicious Activity', 'Other'].map((reason) => (

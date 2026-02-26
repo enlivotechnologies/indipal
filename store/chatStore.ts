@@ -7,16 +7,12 @@ export type MessageType = 'text' | 'image' | 'file' | 'location' | 'audio';
 
 export interface Message {
     id: string;
-    conversationId: string;
-    senderId: string;
-    senderName: string;
-    receiverId: string;
     text: string;
-    type: MessageType;
+    sender: 'me' | 'them';
     timestamp: number;
+    type: MessageType;
     isRead: boolean;
-    fileUrl?: string;
-    mediaUrl?: string;
+    fileUrl?: string; // for images/files
     latitude?: number;
     longitude?: number;
     fileName?: string;
@@ -25,41 +21,35 @@ export interface Message {
 }
 
 export interface Conversation {
-    id: string;
-    participants: {
-        id: string;
-        name: string;
-        role: 'family' | 'senior' | 'pal';
-        avatar?: string;
-    }[];
+    id: string; // Internal unique ID
+    contactId: string; // The ID of the person we are chatting with
+    contactName: string;
+    contactAvatar?: string;
+    contactRole: string;
+    messages: Message[];
     lastMessage?: string;
     lastTimestamp?: number;
     unreadCount: number;
-    relatedGigId?: string;
-    isCallActive?: boolean;
-    callType?: 'voice' | 'video';
+    isTyping?: boolean;
 }
 
 interface ChatState {
     conversations: Conversation[];
-    messages: Record<string, Message[]>; // conversationId -> messages
     isLoading: boolean;
     blockedUserIds: string[];
 
+    messages: Message[];
     // Actions
     fetchConversations: (userId: string) => Promise<void>;
-    fetchMessages: (conversationId: string) => Promise<void>;
+    setTypingStatus: (conversationId: string, isTyping: boolean) => void;
     sendMessage: (
         conversationId: string,
         text: string,
-        senderId: string,
-        senderName: string,
         type?: MessageType,
         metadata?: Partial<Message>
     ) => Promise<void>;
     markAsRead: (conversationId: string) => Promise<void>;
-    createConversation: (palId: string, otherId: string, otherName: string, role: 'family' | 'senior', gigId?: string) => string;
-    toggleCall: (conversationId: string, active: boolean, type?: 'voice' | 'video') => void;
+    getOrCreateConversation: (contact: { id: string, name: string, role: string, avatar?: string }) => string;
     toggleBlockUser: (userId: string) => void;
     isUserBlocked: (userId: string) => boolean;
 }
@@ -68,151 +58,146 @@ export const useChatStore = create<ChatState>()(
     persist(
         (set, get) => ({
             conversations: [],
-            messages: {},
             isLoading: false,
             blockedUserIds: [],
+            messages: [],
+
+            setTypingStatus: (conversationId, isTyping) => {
+                set((state) => ({
+                    conversations: (state.conversations || []).map(c =>
+                        c.id === conversationId ? { ...c, isTyping } : c
+                    )
+                }));
+            },
 
             fetchConversations: async (userId) => {
                 set({ isLoading: true });
+                // In a real app, this would fetch from an API
                 await new Promise(resolve => setTimeout(resolve, 800));
                 set({ isLoading: false });
             },
 
-            fetchMessages: async (conversationId) => {
-                set({ isLoading: true });
-                await new Promise(resolve => setTimeout(resolve, 500));
-                set({ isLoading: false });
-            },
-
-            sendMessage: async (conversationId, text, senderId, senderName, type = 'text', metadata = {}) => {
-                const conversation = get().conversations.find(c => c.id === conversationId);
+            sendMessage: async (conversationId, text, type = 'text', metadata = {}) => {
+                const conversation = (get().conversations || []).find(c => c.id === conversationId);
                 if (!conversation) return;
-
-                const receiver = conversation.participants.find(p => p.id !== senderId);
-                if (!receiver) return;
 
                 const newMessage: Message = {
                     id: Math.random().toString(36).substring(7),
-                    conversationId,
-                    senderId,
-                    senderName,
-                    receiverId: receiver.id,
                     text,
-                    type,
+                    sender: 'me',
                     timestamp: Date.now(),
-                    isRead: false,
+                    type,
+                    isRead: true,
                     ...metadata
                 };
 
                 const lastMsgDisplay = type === 'text' ? text : `[${type.toUpperCase()}]`;
 
                 set((state) => ({
-                    messages: {
-                        ...state.messages,
-                        [conversationId]: [...(state.messages[conversationId] || []), newMessage]
-                    },
-                    conversations: state.conversations.map(c =>
+                    conversations: (state.conversations || []).map(c =>
                         c.id === conversationId
-                            ? { ...c, lastMessage: lastMsgDisplay, lastTimestamp: Date.now() }
+                            ? {
+                                ...c,
+                                messages: [...(c.messages || []), newMessage],
+                                lastMessage: lastMsgDisplay,
+                                lastTimestamp: Date.now()
+                            }
                             : c
                     )
                 }));
 
                 // Simulate reply
-                setTimeout(async () => {
-                    const reply: Message = {
-                        id: Math.random().toString(36).substring(7),
-                        conversationId,
-                        senderId: receiver.id,
-                        senderName: receiver.name,
-                        receiverId: senderId,
-                        text: `Acknowledged! I see you sent a ${type}.`,
-                        type: 'text',
-                        timestamp: Date.now(),
-                        isRead: false
-                    };
+                setTimeout(() => {
+                    get().setTypingStatus(conversationId, true);
 
-                    set((state) => ({
-                        messages: {
-                            ...state.messages,
-                            [conversationId]: [...(state.messages[conversationId] || []), reply]
-                        },
-                        conversations: state.conversations.map(c =>
-                            c.id === conversationId
-                                ? { ...c, lastMessage: reply.text, lastTimestamp: Date.now(), unreadCount: c.unreadCount + 1 }
-                                : c
-                        )
-                    }));
+                    setTimeout(() => {
+                        const reply: Message = {
+                            id: Math.random().toString(36).substring(7),
+                            text: `Acknowledged! I received your ${type}.`,
+                            sender: 'them',
+                            timestamp: Date.now(),
+                            type: 'text',
+                            isRead: false
+                        };
 
-                    useNotificationStore.getState().addNotification({
-                        title: `Message from ${receiver.name}`,
-                        message: reply.text,
-                        type: 'system',
-                        receiverRole: 'pal',
-                        actionRoute: '/(pal)/chat'
-                    });
-                }, 3000);
+                        set((state) => ({
+                            conversations: (state.conversations || []).map(c =>
+                                c.id === conversationId
+                                    ? {
+                                        ...c,
+                                        messages: [...(c.messages || []), reply],
+                                        lastMessage: reply.text,
+                                        lastTimestamp: Date.now(),
+                                        unreadCount: (c.unreadCount || 0) + 1,
+                                        isTyping: false
+                                    }
+                                    : c
+                            )
+                        }));
+
+                        useNotificationStore.getState().addNotification({
+                            title: `Message from ${conversation.contactName || 'User'}`,
+                            message: reply.text,
+                            type: 'system',
+                            receiverRole: 'pal',
+                            actionRoute: '/(pal)/chat'
+                        });
+                    }, 2000);
+                }, 1000);
             },
 
             markAsRead: async (conversationId) => {
                 set((state) => ({
-                    conversations: state.conversations.map(c =>
-                        c.id === conversationId ? { ...c, unreadCount: 0 } : c
-                    ),
-                    messages: {
-                        ...state.messages,
-                        [conversationId]: (state.messages[conversationId] || []).map(m => ({ ...m, isRead: true }))
-                    }
-                }));
-            },
-
-            createConversation: (palId, otherId, otherName, role, gigId) => {
-                const existing = get().conversations.find(c =>
-                    c.participants.some(p => p.id === otherId) && c.relatedGigId === gigId
-                );
-
-                if (existing) return existing.id;
-
-                const id = `CONV${Math.random().toString(36).substring(7).toUpperCase()}`;
-                const newConv: Conversation = {
-                    id,
-                    participants: [
-                        { id: palId, name: 'You', role: 'pal' },
-                        { id: otherId, name: otherName, role: role }
-                    ],
-                    unreadCount: 0,
-                    relatedGigId: gigId,
-                    lastTimestamp: Date.now()
-                };
-
-                set((state) => ({
-                    conversations: [newConv, ...state.conversations]
-                }));
-
-                return id;
-            },
-
-            toggleCall: (conversationId, active, type = 'voice') => {
-                set((state) => ({
-                    conversations: state.conversations.map(c =>
-                        c.id === conversationId ? { ...c, isCallActive: active, callType: type } : c
+                    conversations: (state.conversations || []).map(c =>
+                        c.id === conversationId
+                            ? {
+                                ...c,
+                                unreadCount: 0,
+                                messages: (c.messages || []).map(m => ({ ...m, isRead: true }))
+                            }
+                            : c
                     )
                 }));
             },
 
+            getOrCreateConversation: (contact) => {
+                const state = get();
+                const existing = (state.conversations || []).find(c => c.contactId === contact.id);
+
+                if (existing) return existing.id;
+
+                const newId = `CONV_${Math.random().toString(36).substring(7).toUpperCase()}`;
+                const newConv: Conversation = {
+                    id: newId,
+                    contactId: contact.id,
+                    contactName: contact.name,
+                    contactAvatar: contact.avatar,
+                    contactRole: contact.role,
+                    messages: [],
+                    unreadCount: 0,
+                    lastTimestamp: Date.now()
+                };
+
+                set((state) => ({
+                    conversations: [newConv, ...(state.conversations || [])]
+                }));
+
+                return newId;
+            },
+
             toggleBlockUser: (userId: string) => {
                 set((state) => {
-                    const isBlocked = state.blockedUserIds.includes(userId);
+                    const isBlocked = (state.blockedUserIds || []).includes(userId);
                     return {
                         blockedUserIds: isBlocked
-                            ? state.blockedUserIds.filter(id => id !== userId)
-                            : [...state.blockedUserIds, userId]
+                            ? (state.blockedUserIds || []).filter(id => id !== userId)
+                            : [...(state.blockedUserIds || []), userId]
                     };
                 });
             },
 
             isUserBlocked: (userId: string) => {
-                return get().blockedUserIds.includes(userId);
+                return (get().blockedUserIds || []).includes(userId);
             }
         }),
         {

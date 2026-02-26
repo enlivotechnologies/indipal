@@ -1,7 +1,9 @@
+import { useAuthStore } from "@/store/authStore";
+import { useChatStore } from "@/store/chatStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Image,
@@ -18,61 +20,50 @@ import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // ── Types ─────────────────────────────────────────────────────────────
-type BaseMessage = { id: string; sender: string; seen: boolean; time: string };
-type TextMessage = BaseMessage & { type: "text"; text: string };
-type ImageMessage = BaseMessage & { type: "image"; uri: string; caption?: string };
-type Message = TextMessage | ImageMessage;
 
-// ── Mock Data ──────────────────────────────────────────────────────────
-const chatData = [
-  { id: '1', name: 'Anitha Suresh', image: 'https://i.pravatar.cc/150?u=anitha' },
-  { id: '2', name: 'Dr. Sameer', image: 'https://i.pravatar.cc/150?u=sameer' },
-  { id: '3', name: 'Arjun Singh', image: 'https://i.pravatar.cc/150?u=arjun' },
-  { id: '4', name: 'Priya Verma', image: 'https://i.pravatar.cc/150?u=priya' }
-];
 
 // ── Component ─────────────────────────────────────────────────────────
 export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
-  const person = chatData.find(p => p.id === id) || chatData[0];
+  const { user } = useAuthStore();
+  const { conversations, sendMessage, markAsRead } = useChatStore();
+  const flatListRef = useRef<FlatList>(null);
 
-  const [messages, setMessages] = useState<Message[]>([
-    { id: "1", text: "Hello! I am with your mother now.", sender: "other", seen: true, type: "text", time: '10:30 AM' },
-    { id: "2", text: "She has finished her breakfast and taken the morning meds.", sender: "other", seen: true, type: "text", time: '10:31 AM' },
-    { id: "3", text: `Great, thanks for the update ${person.name}!`, sender: "me", seen: true, type: "text", time: '10:35 AM' },
-  ]);
+  const conversation = conversations.find(c => c.id === id);
+  const chatMessages = conversation?.messages || [];
+  const isTyping = conversation?.isTyping || false;
+
+  useEffect(() => {
+    if (id) markAsRead(id as string);
+  }, [id, chatMessages.length]);
+
+  useEffect(() => {
+    setTimeout(() => {
+      flatListRef.current?.scrollToEnd({ animated: true });
+    }, 100);
+  }, [chatMessages, isTyping]);
 
   const [input, setInput] = useState("");
   const [showAttachments, setShowAttachments] = useState(false);
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  const handleSend = () => {
+    if (!input.trim() || !id) return;
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    const newMessage: TextMessage = {
-      id: Date.now().toString(),
-      text: input,
-      sender: "me",
-      seen: false,
-      type: "text",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setMessages((prev) => [...prev, newMessage]);
+    sendMessage(id as string, input.trim());
     setInput("");
   };
 
   const sendImage = (uri: string) => {
+    if (!id) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    const newMessage: ImageMessage = {
-      id: Date.now().toString(),
-      uri: uri,
-      sender: "me",
-      seen: false,
-      type: "image",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-    setMessages((prev) => [...prev, newMessage]);
+    sendMessage(
+      id as string,
+      "Sent an image",
+      'image',
+      { fileUrl: uri }
+    );
     setShowAttachments(false);
   };
 
@@ -83,108 +74,139 @@ export default function ChatScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: 'white' }}>
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      {/* Enlivo Premium Header - Fixed at Top */}
+      <View
+        style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }}
+        className="px-6 flex-row items-center border-b border-gray-100 bg-white z-10"
       >
-        {/* Enlivo Premium Header - Responsive */}
-        <View
-          style={{ paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }}
-          className="px-6 flex-row items-center border-b border-gray-100 bg-white"
+        <TouchableOpacity onPress={handleBack} className="mr-4">
+          <Ionicons name="chevron-back" size={24} color="#1F2937" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            router.push('/(family)/profiles/caretaker' as any);
+          }}
+          className="flex-row items-center flex-1"
         >
-          <TouchableOpacity onPress={handleBack} className="mr-4">
-            <Ionicons name="chevron-back" size={24} color="#1F2937" />
+          <View className="w-10 h-10 bg-orange-50 rounded-2xl items-center justify-center border border-orange-100 overflow-hidden">
+            {conversation?.contactAvatar ? (
+              <Image source={{ uri: conversation.contactAvatar }} className="w-full h-full" />
+            ) : (
+              <Ionicons name="person" size={20} color="#F59E0B" />
+            )}
+          </View>
+
+          <View className="ml-3 flex-1">
+            <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{conversation?.contactName || 'User'}</Text>
+            <View className="flex-row items-center">
+              <View className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5" />
+              <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Online</Text>
+            </View>
+          </View>
+        </TouchableOpacity>
+
+        <View className="flex-row gap-x-3">
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              Linking.openURL('tel:+919876543210');
+            }}
+            className="w-10 h-10 bg-orange-50 rounded-xl items-center justify-center"
+          >
+            <Ionicons name="call" size={18} color="#F59E0B" />
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-              router.push('/(family)/profiles/caretaker' as any);
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
             }}
-            className="flex-row items-center flex-1"
+            className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center"
           >
-            <Image source={{ uri: person.image }} className="w-10 h-10 rounded-2xl" />
-
-            <View className="ml-3 flex-1">
-              <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{person.name}</Text>
-              <View className="flex-row items-center">
-                <View className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5" />
-                <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Online</Text>
-              </View>
-            </View>
+            <Ionicons name="videocam" size={18} color="#3B82F6" />
           </TouchableOpacity>
-
-          <View className="flex-row gap-x-3">
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                Linking.openURL('tel:+919876543210');
-              }}
-              className="w-10 h-10 bg-orange-50 rounded-xl items-center justify-center"
-            >
-              <Ionicons name="call" size={18} color="#F59E0B" />
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                // Video call placeholder logic
-              }}
-              className="w-10 h-10 bg-blue-50 rounded-xl items-center justify-center"
-            >
-              <Ionicons name="videocam" size={18} color="#3B82F6" />
-            </TouchableOpacity>
-          </View>
         </View>
+      </View>
 
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
         {/* CHAT LIST */}
         <FlatList
-          data={messages}
+          ref={flatListRef}
+          data={isTyping ? [...chatMessages, { id: 'typing', text: '', sender: 'them', timestamp: Date.now(), type: 'typing', isRead: false }] : chatMessages}
           keyExtractor={(item) => item.id}
           contentContainerStyle={{ paddingHorizontal: 20, paddingVertical: 20 }}
           showsVerticalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <View
-              className={`mb-4 max-w-[85%] rounded-[28px] overflow-hidden ${item.sender === "me"
-                ? "self-end shadow-sm shadow-orange-100"
-                : "self-start"
-                }`}
-            >
-              <View className={`p-4 ${item.sender === 'me' ? 'bg-orange-500 rounded-tr-none' : 'bg-gray-100 rounded-tl-none'}`}>
-                {item.type === 'text' ? (
-                  <Text className={`text-[15px] font-medium leading-5 ${item.sender === 'me' ? 'text-white' : 'text-gray-800'}`}>
-                    {item.text}
-                  </Text>
-                ) : (
-                  <View>
-                    <Image
-                      source={{ uri: item.uri }}
-                      className="w-64 h-48 rounded-2xl mb-2"
-                      resizeMode="cover"
-                    />
-                    {item.caption && (
-                      <Text className={`text-[14px] font-medium ${item.sender === 'me' ? 'text-white' : 'text-gray-800'}`}>
-                        {item.caption}
-                      </Text>
+          renderItem={({ item }) => {
+            if ((item as any).type === 'typing') {
+              return (
+                <Animated.View
+                  entering={FadeInDown.duration(400)}
+                  className="self-start mb-4"
+                >
+                  <View className="bg-gray-100 px-5 py-3 rounded-[24px] rounded-tl-none flex-row items-center">
+                    <View className="flex-row gap-x-1">
+                      <View className="w-1.5 h-1.5 bg-gray-400 rounded-full" />
+                      <View className="w-1.5 h-1.5 bg-gray-400 rounded-full opacity-50" />
+                      <View className="w-1.5 h-1.5 bg-gray-400 rounded-full opacity-25" />
+                    </View>
+                    <Text className="ml-2 text-[8px] font-black text-gray-400 uppercase tracking-widest">
+                      {conversation?.contactName} is typing...
+                    </Text>
+                  </View>
+                </Animated.View>
+              );
+            }
+            const isMe = item.sender === 'me';
+            const isUnreadReceived = !isMe && !item.isRead;
+
+            return (
+              <View
+                className={`mb-4 max-w-[85%] rounded-[28px] overflow-hidden ${isMe
+                  ? "self-end shadow-sm shadow-orange-100"
+                  : "self-start shadow-sm shadow-gray-100"
+                  }`}
+              >
+                <View className={`p-4 ${isMe ? 'bg-orange-500 rounded-tr-none' : isUnreadReceived ? 'bg-orange-50 rounded-tl-none border border-orange-100' : 'bg-gray-100 rounded-tl-none'}`}>
+                  {item.type === 'text' ? (
+                    <Text className={`text-[15px] font-medium leading-5 ${isMe ? 'text-white' : 'text-gray-800'}`}>
+                      {item.text}
+                    </Text>
+                  ) : item.type === 'image' ? (
+                    <View>
+                      <Image
+                        source={{ uri: item.fileUrl }}
+                        className="w-64 h-48 rounded-2xl mb-2"
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ) : (
+                    <Text className="italic text-xs text-gray-400">Attached Media</Text>
+                  )}
+                  <View className="flex-row items-center justify-end mt-2">
+                    <Text className={`text-[9px] font-bold uppercase tracking-tighter ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+                      {new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </Text>
+                    {isMe && (
+                      <Ionicons
+                        name={item.isRead ? "checkmark-done" : "checkmark"}
+                        color={item.isRead ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
+                        size={12}
+                        style={{ marginLeft: 4 }}
+                      />
+                    )}
+                    {isUnreadReceived && (
+                      <View className="w-1.5 h-1.5 bg-orange-500 rounded-full ml-1" />
                     )}
                   </View>
-                )}
-                <View className="flex-row items-center justify-end mt-2">
-                  <Text className={`text-[9px] font-bold uppercase tracking-tighter ${item.sender === 'me' ? 'text-white/70' : 'text-gray-400'}`}>
-                    {item.time}
-                  </Text>
-                  {item.sender === "me" && (
-                    <Ionicons
-                      name="checkmark-done"
-                      color={item.seen ? "#FFFFFF" : "rgba(255,255,255,0.4)"}
-                      size={12}
-                      style={{ marginLeft: 4 }}
-                    />
-                  )}
                 </View>
               </View>
-            </View>
-          )}
+            );
+          }}
         />
 
         {/* ATTACHMENT MENU */}
@@ -215,14 +237,12 @@ export default function ChatScreen() {
                   setShowAttachments(false);
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                   // Mock Location Send
-                  setMessages(prev => [...prev, {
-                    id: Date.now().toString(),
-                    text: "📍 Shared current location: 12.9716, 77.5946",
-                    sender: "me",
-                    seen: false,
-                    type: "text",
-                    time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                  }]);
+                  sendMessage(
+                    id as string,
+                    "📍 Shared current location: 12.9716, 77.5946",
+                    'location',
+                    { latitude: 12.9716, longitude: 77.5946 }
+                  );
                 }}
               />
               <AttachmentItem
@@ -238,7 +258,7 @@ export default function ChatScreen() {
           )
         }
 
-        {/* INPUT SECTION - Responsive Bottom */}
+        {/* INPUT SECTION - Fixed at Bottom */}
         <View
           style={{
             paddingBottom: Math.max(insets.bottom, 16),
@@ -270,7 +290,7 @@ export default function ChatScreen() {
           </View>
 
           <TouchableOpacity
-            onPress={sendMessage}
+            onPress={handleSend}
             className="w-12 h-12 bg-orange-500 rounded-2xl items-center justify-center shadow-lg shadow-orange-200"
           >
             <Ionicons name={input.trim() ? "send" : "mic"} size={20} color="white" />

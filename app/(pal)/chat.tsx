@@ -25,8 +25,7 @@ export default function ChatListScreen() {
     }, [user]);
 
     const filteredConversations = conversations.filter(conv => {
-        const otherParticipant = conv.participants.find(p => p.role !== 'pal');
-        return otherParticipant?.name.toLowerCase().includes(search.toLowerCase());
+        return (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
     });
 
     const formatTime = (timestamp?: number) => {
@@ -79,17 +78,7 @@ export default function ChatListScreen() {
                     paddingBottom: insets.bottom + 100
                 }}
                 showsVerticalScrollIndicator={false}
-                ListEmptyComponent={
-                    <View className="flex-1 items-center justify-center py-20">
-                        <View className="w-20 h-20 bg-gray-50 rounded-[32px] items-center justify-center mb-6">
-                            <Ionicons name="chatbubbles-outline" size={32} color="#D1D5DB" />
-                        </View>
-                        <Text className="text-gray-900 font-black text-lg text-center">No messages yet</Text>
-                        <Text className="text-gray-400 text-sm text-center mt-2 leading-6 px-10">When you accept a gig, a chat group will be automatically created with the family.</Text>
-                    </View>
-                }
                 renderItem={({ item, index }) => {
-                    const otherParticipant = item.participants.find(p => p.role !== 'pal');
                     return (
                         <Animated.View entering={FadeInDown.delay(index * 100)}>
                             <TouchableOpacity
@@ -101,8 +90,8 @@ export default function ChatListScreen() {
                             >
                                 <View className="relative">
                                     <View className="w-14 h-14 bg-emerald-50 rounded-[22px] items-center justify-center border border-emerald-100 overflow-hidden">
-                                        {otherParticipant?.avatar ? (
-                                            <Image source={{ uri: otherParticipant.avatar }} className="w-full h-full" />
+                                        {item.contactAvatar ? (
+                                            <Image source={{ uri: item.contactAvatar }} className="w-full h-full" />
                                         ) : (
                                             <Ionicons name="person" size={24} color={BRAND_GREEN} />
                                         )}
@@ -112,10 +101,10 @@ export default function ChatListScreen() {
 
                                 <View className="flex-1 ml-4">
                                     <View className="flex-row justify-between items-center mb-1">
-                                        <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{otherParticipant?.name}</Text>
+                                        <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{item.contactName}</Text>
                                         <Text className="text-[10px] font-bold text-gray-400">{formatTime(item.lastTimestamp)}</Text>
                                     </View>
-                                    <Text className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{otherParticipant?.role || 'User'}</Text>
+                                    <Text className="text-[10px] font-black text-emerald-600 mb-1 uppercase tracking-widest">{item.contactRole}</Text>
                                     <Text className="text-xs text-gray-500 font-medium" numberOfLines={1}>{item.lastMessage || 'No messages yet'}</Text>
                                 </View>
 

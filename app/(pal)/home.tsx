@@ -230,7 +230,7 @@ export default function PalHome() {
                                         <Text className="text-gray-900 font-bold text-sm">₹{booking.price}</Text>
                                         <Text className="text-emerald-500 text-[8px] font-black uppercase">Instant Pay</Text>
                                     </View>
-                                    <Text className="text-gray-500 text-[10px] mt-0.5">{booking.userName} • {booking.time}</Text>
+                                    <Text className="text-gray-500 text-[10px] mt-0.5">{booking.clientName} • {booking.time}</Text>
                                 </View>
                                 <View className="w-8 h-8 bg-gray-50 rounded-full items-center justify-center ml-2">
                                     <Ionicons name="chevron-forward" size={14} color="#D1D5DB" />
@@ -256,14 +256,16 @@ export default function PalHome() {
                             className="bg-gray-900/95 p-8 rounded-[40px] shadow-2xl relative overflow-hidden"
                         >
                             <View className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full -mr-10 -mt-10" />
-                            <View className="flex-row items-center justify-between mb-8">
+                            <View className="flex-row items-center justify-between mb-6">
                                 <View className="flex-row items-center">
                                     <View className="w-14 h-14 bg-emerald-500/20 rounded-2xl items-center justify-center">
                                         <Ionicons name="person" size={24} color="white" />
                                     </View>
                                     <View className="ml-4">
-                                        <Text className="text-white font-black text-xl">{activeGig.userName}</Text>
-                                        <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeGig.title}</Text>
+                                        <Text className="text-white font-black text-xl">{activeGig.clientName}</Text>
+                                        <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">
+                                            {activeGig.services?.length || 1} {activeGig.services?.length === 1 ? 'Service' : 'Services'} • ₹{activeGig.price}
+                                        </Text>
                                     </View>
                                 </View>
                                 <View className="bg-emerald-500/20 px-3 py-1.5 rounded-full border border-emerald-500/30">
@@ -273,8 +275,37 @@ export default function PalHome() {
                                 </View>
                             </View>
 
+                            {/* Progress Bar */}
+                            {activeGig.services && activeGig.services.length > 0 && (
+                                <View className="mb-6">
+                                    <View className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                                        <View
+                                            style={{ width: `${(activeGig.services.filter(s => s.status === 'completed').length / activeGig.services.length) * 100}%` }}
+                                            className="h-full bg-emerald-500"
+                                        />
+                                    </View>
+                                    <View className="flex-row justify-between mt-2">
+                                        <Text className="text-white/40 text-[8px] font-black uppercase tracking-widest">Progress</Text>
+                                        <Text className="text-emerald-400 text-[8px] font-black uppercase tracking-widest">
+                                            {Math.round((activeGig.services.filter(s => s.status === 'completed').length / activeGig.services.length) * 100)}% Complete
+                                        </Text>
+                                    </View>
+                                </View>
+                            )}
+
                             <View className="flex-row items-center justify-between">
-                                <Text className="text-white/60 text-xs font-bold">{activeGig.location.address}</Text>
+                                <View className="flex-row gap-x-2">
+                                    {activeGig.services?.slice(0, 3).map((s, i) => (
+                                        <View key={s.id} className={`px-2 py-0.5 rounded-md ${s.status === 'completed' ? 'bg-emerald-500/20 border border-emerald-500/30' : s.status === 'in_progress' ? 'bg-orange-500/20 border border-orange-500/30' : 'bg-white/5 border border-white/10'}`}>
+                                            <Text className={`text-[7px] font-black uppercase ${s.status === 'completed' ? 'text-emerald-400' : s.status === 'in_progress' ? 'text-orange-400' : 'text-white/40'}`}>
+                                                {s.title.split(' ')[0]} {s.status === 'completed' ? '✓' : ''}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                    {(activeGig.services?.length || 0) > 3 && (
+                                        <Text className="text-white/40 text-[7px] font-black self-center">+{activeGig.services.length - 3} more</Text>
+                                    )}
+                                </View>
                                 <Ionicons name="arrow-forward-circle" size={32} color="white" />
                             </View>
                         </TouchableOpacity>

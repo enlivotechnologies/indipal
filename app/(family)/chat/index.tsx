@@ -1,59 +1,29 @@
+import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Image, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const chatData = [
-  {
-    id: '1',
-    name: 'Anitha Suresh',
-    role: 'Primary Caretaker',
-    lastMessage: 'Medicine given at 8 PM. She is sleeping now.',
-    time: '2m ago',
-    unread: 2,
-    online: true,
-    image: 'https://i.pravatar.cc/150?u=anitha'
-  },
-  {
-    id: '2',
-    name: 'Dr. Sameer',
-    role: 'Family Physician',
-    lastMessage: 'Reports look normal. Continue meds.',
-    time: '1h ago',
-    unread: 0,
-    online: false,
-    image: 'https://i.pravatar.cc/150?u=sameer'
-  },
-  {
-    id: '3',
-    name: 'Arjun Singh',
-    role: 'Active Pal',
-    lastMessage: 'I have reached the location.',
-    time: '3h ago',
-    unread: 0,
-    online: true,
-    image: 'https://i.pravatar.cc/150?u=arjun'
-  },
-  {
-    id: '4',
-    name: 'Priya Verma',
-    role: 'Pharmacy Hub Pal',
-    lastMessage: 'Picking up the medicines now.',
-    time: '5h ago',
-    unread: 0,
-    online: true,
-    image: 'https://i.pravatar.cc/150?u=priya'
-  }
-];
 
 export default function ChatList() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { conversations, fetchConversations } = useChatStore();
+  const { user } = useAuthStore();
   const [search, setSearch] = useState('');
+
+  useEffect(() => {
+    if (user?.phone) fetchConversations(user.phone);
+  }, [user]);
+
+  const filteredConversations = conversations.filter(conv => {
+    return (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
+  });
 
   const activeTab = pathname.includes('home') ? 'Home' :
     pathname.includes('care') ? 'Care' :
@@ -107,43 +77,51 @@ export default function ChatList() {
       </View>
 
       <FlatList
-        data={chatData}
+        data={filteredConversations}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{
           paddingHorizontal: 24,
           paddingBottom: insets.bottom + 100
         }}
         showsVerticalScrollIndicator={false}
-        renderItem={({ item, index }) => (
-          <Animated.View entering={FadeInDown.delay(index * 100)}>
-            <TouchableOpacity
-              onPress={() => router.push({ pathname: "/(family)/chat/[id]", params: { id: item.id } })}
-              className="flex-row items-center py-4 border-b border-gray-50"
-            >
-              <View className="relative">
-                <Image source={{ uri: item.image }} className="w-14 h-14 rounded-[22px]" />
-                {item.online && (
+        renderItem={({ item, index }) => {
+          return (
+            <Animated.View entering={FadeInDown.delay(index * 100)}>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: "/(family)/chat/[id]", params: { id: item.id } })}
+                className="flex-row items-center py-4 border-b border-gray-50"
+              >
+                <View className="relative">
+                  <View className="w-14 h-14 bg-orange-50 rounded-[22px] items-center justify-center border border-orange-100 overflow-hidden">
+                    {item.contactAvatar ? (
+                      <Image source={{ uri: item.contactAvatar }} className="w-full h-full" />
+                    ) : (
+                      <Ionicons name="person" size={24} color="#F59E0B" />
+                    )}
+                  </View>
                   <View className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white" />
+                </View>
+
+                <View className="flex-1 ml-4">
+                  <View className="flex-row justify-between items-center mb-1">
+                    <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{item.contactName}</Text>
+                    <Text className="text-[10px] font-bold text-gray-400">
+                      {item.lastTimestamp ? new Date(item.lastTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                    </Text>
+                  </View>
+                  <Text className="text-xs font-medium text-orange-600 mb-1 uppercase tracking-widest">{item.contactRole}</Text>
+                  <Text className="text-xs text-gray-500 font-medium" numberOfLines={1}>{item.lastMessage || 'No messages yet'}</Text>
+                </View>
+
+                {item.unreadCount > 0 && (
+                  <View className="ml-2 bg-orange-500 w-5 h-5 rounded-full items-center justify-center shadow-sm shadow-orange-200">
+                    <Text className="text-[10px] font-black text-white">{item.unreadCount}</Text>
+                  </View>
                 )}
-              </View>
-
-              <View className="flex-1 ml-4">
-                <View className="flex-row justify-between items-center mb-1">
-                  <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{item.name}</Text>
-                  <Text className="text-[10px] font-bold text-gray-400">{item.time}</Text>
-                </View>
-                <Text className="text-xs font-medium text-orange-600 mb-1">{item.role}</Text>
-                <Text className="text-xs text-gray-500 font-medium" numberOfLines={1}>{item.lastMessage}</Text>
-              </View>
-
-              {item.unread > 0 && (
-                <View className="ml-2 bg-orange-500 w-5 h-5 rounded-full items-center justify-center shadow-sm shadow-orange-200">
-                  <Text className="text-[10px] font-black text-white">{item.unread}</Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </Animated.View>
-        )}
+              </TouchableOpacity>
+            </Animated.View>
+          );
+        }}
       />
 
       {/* Custom Floating Bottom Bar */}

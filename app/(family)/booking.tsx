@@ -43,7 +43,7 @@ export default function BookingScreen() {
             price: duration === '2 hrs' ? 450 : duration === '4 hrs' ? 800 : 1500,
             location: { address: address || "HSR Layout, Bangalore" },
             familyId: "FAM_USER_001",
-            userName: "Senior Member",
+            clientName: "Senior Member",
             palId: "",
             palName: "",
             date: date,

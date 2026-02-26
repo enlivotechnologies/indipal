@@ -2,7 +2,7 @@ import { captureImageWithCamera, pickDocument, pickImageFromGallery, uploadFile 
 import { useAuthStore } from "@/store/authStore";
 import { useChatStore } from "@/store/chatStore";
 import { Ionicons } from "@expo/vector-icons";
-import { Audio } from 'expo-av';
+import { RecordingPresets, requestRecordingPermissionsAsync, useAudioPlayer, useAudioRecorder } from 'expo-audio';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,11 +10,11 @@ import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    FlatList,
     Image,
     KeyboardAvoidingView,
     Linking,
     Platform,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -31,22 +31,22 @@ export default function ChatRoomScreen() {
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
     const { user } = useAuthStore();
-    const { conversations, messages, sendMessage, markAsRead, toggleCall, blockedUserIds } = useChatStore();
+    const { conversations, sendMessage, markAsRead, blockedUserIds } = useChatStore();
     const [inputText, setInputText] = useState('');
     const [showAttachments, setShowAttachments] = useState(false);
     const [isSending, setIsSending] = useState(false);
-    const scrollViewRef = useRef<ScrollView>(null);
+    const flatListRef = useRef<FlatList>(null);
 
-    // Audio Recording States
-    const [recording, setRecording] = useState<Audio.Recording | null>(null);
+    // Audio Recording with expo-audio
+    const recorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
     const [isRecording, setIsRecording] = useState(false);
     const [recordDuration, setRecordDuration] = useState(0);
     const recordTimer = useRef<any>(null);
 
     const conversation = conversations.find(c => c.id === id);
-    const chatMessages = messages[id as string] || [];
-    const otherParticipant = conversation?.participants.find(p => p.role !== 'pal');
-    const isBlocked = blockedUserIds.includes(otherParticipant?.id || '');
+    const chatMessages = conversation?.messages || [];
+    const isTyping = conversation?.isTyping || false;
+    const isBlocked = blockedUserIds.includes(conversation?.contactId || '');
 
     useEffect(() => {
         if (id) {
@@ -59,20 +59,18 @@ export default function ChatRoomScreen() {
 
     useEffect(() => {
         setTimeout(() => {
-            scrollViewRef.current?.scrollToEnd({ animated: true });
+            flatListRef.current?.scrollToEnd({ animated: true });
         }, 100);
-    }, [chatMessages]);
+    }, [chatMessages, isTyping]);
 
     const handleSendText = async () => {
-        if (!inputText.trim() || !id || !user || isSending) return;
+        if (!inputText.trim() || !id || isSending) return;
 
         setIsSending(true);
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         await sendMessage(
             id as string,
-            inputText.trim(),
-            user.phone || 'PAL_001',
-            user.name || 'Arjun Singh'
+            inputText.trim()
         );
         setInputText('');
         setIsSending(false);
@@ -88,8 +86,6 @@ export default function ChatRoomScreen() {
             await sendMessage(
                 id as string,
                 "Sent an image",
-                user?.phone || 'PAL_001',
-                user?.name || 'Arjun Singh',
                 'image',
                 { fileUrl: url }
             );
@@ -107,8 +103,6 @@ export default function ChatRoomScreen() {
             await sendMessage(
                 id as string,
                 "Sent a photo",
-                user?.phone || 'PAL_001',
-                user?.name || 'Arjun Singh',
                 'image',
                 { fileUrl: url }
             );
@@ -130,8 +124,6 @@ export default function ChatRoomScreen() {
         await sendMessage(
             id as string,
             "Shared current location",
-            user?.phone || 'PAL_001',
-            user?.name || 'Arjun Singh',
             'location',
             { latitude: loc.coords.latitude, longitude: loc.coords.longitude }
         );
@@ -148,8 +140,6 @@ export default function ChatRoomScreen() {
             await sendMessage(
                 id as string,
                 `Sent file: ${asset.name}`,
-                user?.phone || 'PAL_001',
-                user?.name || 'Arjun Singh',
                 'file',
                 { fileUrl: url, fileName: asset.name, fileSize: asset.size }
             );
@@ -159,18 +149,13 @@ export default function ChatRoomScreen() {
 
     const startRecording = async () => {
         try {
-            const { status } = await Audio.requestPermissionsAsync();
+            const { status } = await requestRecordingPermissionsAsync();
             if (status !== 'granted') return;
 
-            await Audio.setAudioModeAsync({
-                allowsRecordingIOS: true,
-                playsInSilentModeIOS: true,
-            });
+            // In expo-audio, recording presets are passed to prepareToRecordAsync
+            await recorder.prepareToRecordAsync(RecordingPresets.HIGH_QUALITY);
+            recorder.record();
 
-            const { recording } = await Audio.Recording.createAsync(
-                Audio.RecordingOptionsPresets.HIGH_QUALITY
-            );
-            setRecording(recording);
             setIsRecording(true);
             setRecordDuration(0);
             recordTimer.current = setInterval(() => {
@@ -183,14 +168,13 @@ export default function ChatRoomScreen() {
     };
 
     const stopRecording = async () => {
-        if (!recording) return;
+        if (!recorder) return;
 
         setIsRecording(false);
-        setRecording(null);
         if (recordTimer.current) clearInterval(recordTimer.current);
 
-        await recording.stopAndUnloadAsync();
-        const uri = recording.getURI();
+        await recorder.stop();
+        const uri = recorder.uri;
 
         if (uri) {
             setIsSending(true);
@@ -198,10 +182,8 @@ export default function ChatRoomScreen() {
             await sendMessage(
                 id as string,
                 "Sent a voice message",
-                user?.phone || 'PAL_001',
-                user?.name || 'Arjun Singh',
                 'audio',
-                { mediaUrl: url, duration: recordDuration }
+                { fileUrl: url, duration: recordDuration }
             );
             setIsSending(false);
         }
@@ -213,6 +195,7 @@ export default function ChatRoomScreen() {
             Alert.alert("Contact Blocked", `Cannot start a ${type} call with a blocked contact.`);
             return;
         }
+        if (!conversation) return;
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         // toggleCall(id as string, true, type);
         // Navigate to Call Screen
@@ -220,8 +203,8 @@ export default function ChatRoomScreen() {
             pathname: '/(pal)/call',
             params: {
                 type,
-                partnerName: otherParticipant?.name || 'User',
-                partnerAvatar: otherParticipant?.avatar || ''
+                partnerName: conversation.contactName,
+                partnerAvatar: conversation.contactAvatar || ''
             }
         } as any);
     };
@@ -248,20 +231,20 @@ export default function ChatRoomScreen() {
                             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                             router.push({
                                 pathname: '/(pal)/contact-profile',
-                                params: { id, participantId: otherParticipant?.id }
+                                params: { id, participantId: conversation.contactId }
                             } as any);
                         }}
                         className="flex-row items-center flex-1"
                     >
                         <View className="w-10 h-10 bg-emerald-50 rounded-2xl items-center justify-center border border-emerald-100 overflow-hidden">
-                            {otherParticipant?.avatar ? (
-                                <Image source={{ uri: otherParticipant.avatar }} className="w-full h-full" />
+                            {conversation.contactAvatar ? (
+                                <Image source={{ uri: conversation.contactAvatar }} className="w-full h-full" />
                             ) : (
                                 <Ionicons name="person" size={20} color={BRAND_GREEN} />
                             )}
                         </View>
                         <View className="ml-3 flex-1">
-                            <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{otherParticipant?.name}</Text>
+                            <Text className="text-base font-bold text-gray-900" numberOfLines={1}>{conversation.contactName}</Text>
                             <View className="flex-row items-center">
                                 <View className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5" />
                                 <Text className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Online</Text>
@@ -287,14 +270,37 @@ export default function ChatRoomScreen() {
                 </View>
 
                 {/* Real-time Message Area */}
-                <ScrollView
-                    ref={scrollViewRef}
+                <FlatList
+                    ref={flatListRef as any}
+                    data={isTyping ? [...chatMessages, { id: 'typing', text: '', sender: 'them', timestamp: Date.now(), type: 'typing', isRead: false } as any] : chatMessages}
+                    keyExtractor={(item) => item.id}
                     className="flex-1 px-6"
                     contentContainerStyle={{ paddingVertical: 24 }}
                     showsVerticalScrollIndicator={false}
-                >
-                    {chatMessages.map((msg, idx) => {
-                        const isMe = msg.senderId === (user?.phone || 'PAL_001');
+                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                    onLayout={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                    renderItem={({ item: msg }) => {
+                        if (msg.type === 'typing') {
+                            return (
+                                <Animated.View
+                                    entering={FadeInDown.duration(400)}
+                                    className="flex-row justify-start mb-6"
+                                >
+                                    <View className="bg-gray-100 px-6 py-4 rounded-[28px] rounded-tl-none flex-row items-center">
+                                        <View className="flex-row gap-x-1">
+                                            <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+                                            <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100" />
+                                            <View className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200" />
+                                        </View>
+                                        <Text className="ml-3 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                            {conversation.contactName} is typing...
+                                        </Text>
+                                    </View>
+                                </Animated.View>
+                            );
+                        }
+
+                        const isMe = msg.sender === 'me';
                         return (
                             <View key={msg.id} className={`mb-6 flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
                                 <View
@@ -317,15 +323,15 @@ export default function ChatRoomScreen() {
                                         <TouchableOpacity className="flex-row items-center bg-black/5 p-3 rounded-xl mb-2">
                                             <Ionicons name="document-text" size={24} color={isMe ? 'white' : '#6B7281'} />
                                             <View className="ml-3">
-                                                <Text className={`text-xs font-bold ${isMe ? 'text-white' : 'text-gray-800'}`} numberOfLines={1}>{msg.fileName}</Text>
-                                                <Text className={`text-[8px] uppercase font-black ${isMe ? 'text-white/60' : 'text-gray-400'}`}>{(msg.fileSize || 0 / 1024).toFixed(1)} KB</Text>
+                                                <Text className={`text-xs font-bold ${isMe ? 'text-white' : 'text-gray-800'}`} numberOfLines={1}>{(msg as any).fileName}</Text>
+                                                <Text className={`text-[8px] uppercase font-black ${isMe ? 'text-white/60' : 'text-gray-400'}`}>{(((msg as any).fileSize || 0) / 1024).toFixed(1)} KB</Text>
                                             </View>
                                         </TouchableOpacity>
                                     )}
                                     {msg.type === 'audio' && (
                                         <AudioPlayer
-                                            uri={msg.mediaUrl || msg.fileUrl!}
-                                            duration={msg.duration || 0}
+                                            uri={msg.fileUrl!}
+                                            duration={(msg as any).duration || 0}
                                             isMe={isMe}
                                         />
                                     )}
@@ -350,8 +356,8 @@ export default function ChatRoomScreen() {
                                 </View>
                             </View>
                         );
-                    })}
-                </ScrollView>
+                    }}
+                />
 
                 {/* FUNCTIONAL ATTACHMENT MENU */}
                 {showAttachments && (
@@ -449,45 +455,25 @@ function AttachmentItem({ icon, label, color, onPress }: { icon: any; label: str
 }
 
 function AudioPlayer({ uri, duration, isMe }: { uri: string; duration: number; isMe: boolean }) {
-    const [sound, setSound] = useState<Audio.Sound | null>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const player = useAudioPlayer(uri);
     const [position, setPosition] = useState(0);
 
     useEffect(() => {
-        return () => {
-            if (sound) {
-                sound.unloadAsync();
-            }
-        };
-    }, [sound]);
-
-    const playPause = async () => {
-        if (sound) {
-            if (isPlaying) {
-                await sound.pauseAsync();
-                setIsPlaying(false);
-            } else {
-                await sound.playAsync();
-                setIsPlaying(true);
-            }
-        } else {
-            const { sound: newSound } = await Audio.Sound.createAsync(
-                { uri },
-                { shouldPlay: true },
-                onPlaybackStatusUpdate
-            );
-            setSound(newSound);
-            setIsPlaying(true);
-        }
-    };
-
-    const onPlaybackStatusUpdate = (status: any) => {
-        if (status.isLoaded) {
-            setPosition(status.positionMillis / status.durationMillis);
-            if (status.didJustFinish) {
-                setIsPlaying(false);
+        const interval = setInterval(() => {
+            if (player.playing && player.duration > 0) {
+                setPosition(player.currentTime / player.duration);
+            } else if (!player.playing && player.currentTime === 0) {
                 setPosition(0);
             }
+        }, 100);
+        return () => clearInterval(interval);
+    }, [player.playing, player.duration, player.currentTime]);
+
+    const playPause = async () => {
+        if (player.playing) {
+            player.pause();
+        } else {
+            player.play();
         }
     };
 
@@ -495,7 +481,7 @@ function AudioPlayer({ uri, duration, isMe }: { uri: string; duration: number; i
         <View className="flex-row items-center gap-x-3 mb-2 min-w-[150px]">
             <TouchableOpacity onPress={playPause}>
                 <Ionicons
-                    name={isPlaying ? "pause-circle" : "play-circle"}
+                    name={player.playing ? "pause-circle" : "play-circle"}
                     size={36}
                     color={isMe ? 'white' : BRAND_GREEN}
                 />

@@ -95,7 +95,7 @@ export const useHealthStore = create<HealthState>()(
             history: INITIAL_HISTORY,
             addHealthData: (data) => set((state) => {
                 const now = new Date().toISOString();
-                const newHistory = { ...state.history } || INITIAL_HISTORY;
+                const newHistory = state.history ? { ...state.history } : { ...INITIAL_HISTORY };
                 let newRecords = { ...state.records };
 
                 if (data.bp) {

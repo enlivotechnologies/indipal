@@ -77,7 +77,7 @@ export default function RegisterFamily() {
                     <View className="flex-row items-center mb-6">
                         <TouchableOpacity onPress={() => {
                             if (step > 1) { prevStep(); }
-                            else { router.canGoBack() ? router.back() : router.replace('/(auth)/otp-verify'); }
+                            else { router.canGoBack() ? router.back() : router.replace('/(auth)/verification/otp-verify' as any); }
                         }}>
                             <Ionicons name="arrow-back" size={24} color="#1F2937" />
                         </TouchableOpacity>

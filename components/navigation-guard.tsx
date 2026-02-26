@@ -25,12 +25,12 @@ export function NavigationGuard() {
         if (!role) {
             const allowedScreens = ["welcome", "role-selection"];
             if (!inAuthGroup || !allowedScreens.includes(currentStep)) {
-                router.replace("/(auth)/welcome");
+                router.replace("/(auth)/onboarding" as any);
             }
         } else if (!user?.phone) {
             const allowedScreens = ["welcome", "role-selection", "phone-entry", "otp-verify"];
             if (!inAuthGroup || !allowedScreens.includes(currentStep)) {
-                router.replace("/(auth)/phone-entry");
+                router.replace("/(auth)/verification/phone-entry" as any);
             }
         } else if (!user?.name) {
             const allowedScreens = [
@@ -43,9 +43,9 @@ export function NavigationGuard() {
                 "register-pal"
             ];
             if (!inAuthGroup || !allowedScreens.includes(currentStep)) {
-                if (role === 'senior') router.replace("/(auth)/register-senior");
-                else if (role === 'family') router.replace("/(auth)/register-family");
-                else if (role === 'pal') router.replace("/(auth)/register-pal");
+                if (role === 'senior') router.replace("/(auth)/registration/senior" as any);
+                else if (role === 'family') router.replace("/(auth)/registration/family" as any);
+                else if (role === 'pal') router.replace("/(auth)/registration/pal" as any);
             }
         } else {
             const pathSegments = segments as string[];

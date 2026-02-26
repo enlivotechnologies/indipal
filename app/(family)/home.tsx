@@ -377,7 +377,7 @@ export default function FamilyHomeScreen() {
               delay={200}
             />
             <HealthStatusCard
-              icon="tint"
+              icon="water-outline"
               label="Hydration"
               value={`${healthRecords.water?.glasses || 0}/${healthRecords.water?.goal || 8}`}
               unit="Glasses"

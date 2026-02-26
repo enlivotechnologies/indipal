@@ -83,7 +83,7 @@ export default function PalProfileScreen() {
         addBooking({
             palId: palData.id,
             palName: palData.name,
-            userName: user?.name || 'Member',
+            clientName: user?.name || 'Member',
             date: currentDay.date,
             day: currentDay.day,
             time: selectedTimeSlot,

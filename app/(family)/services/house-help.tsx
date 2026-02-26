@@ -121,7 +121,7 @@ export default function HouseHelpScreen() {
                 price: selectedService.price,
                 location: { address: address || "HSR Layout, Sector 4, Bangalore", lat: 12.9141, lng: 77.6413 },
                 familyId: "FAM_PREMIUM_01",
-                userName: "Grandpa Ramesh", // Mock data for senior name
+                clientName: "Grandpa Ramesh", // Mock data for senior name
                 palId: "",
                 palName: "",
                 date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),

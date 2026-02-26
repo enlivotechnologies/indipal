@@ -14,6 +14,14 @@ export type BookingStatus =
   | "completed"
   | "cancelled";
 
+export interface ServiceItem {
+  id: string;
+  title: string;
+  duration: string;
+  price: number;
+  status: "pending" | "in_progress" | "completed";
+}
+
 export interface GigLocation {
   address: string;
   lat?: number;
@@ -24,7 +32,7 @@ export interface Booking {
   id: string;
   palId: string;
   palName: string;
-  userName: string; // clientName
+  clientName: string;
   date: string;
   day: string;
   time: string;
@@ -39,6 +47,7 @@ export interface Booking {
   description?: string;
   duration?: string;
   familyId: string;
+  services: ServiceItem[];
   assignedAt?: number;
   startedTravelAt?: number;
   arrivedAt?: number;
@@ -56,8 +65,9 @@ interface BookingState {
   acceptGig: (id: string, palId: string, palName: string) => Promise<{ success: boolean; message: string }>;
   updateGigStatus: (id: string, status: BookingStatus) => Promise<{ success: boolean; message: string }>;
   completeGig: (id: string) => Promise<{ success: boolean; message: string }>;
+  updateServiceStatus: (gigId: string, serviceId: string, status: ServiceItem["status"]) => void;
   setHasNewGigs: (val: boolean) => void;
-  addGig: (gig: Omit<Booking, "id" | "timestamp" | "status">) => void;
+  addGig: (gig: Omit<Booking, "id" | "timestamp" | "status" | "services"> & { services?: ServiceItem[] }) => void;
   cancelBooking: (id: string) => void;
 
   // Compatibility
@@ -86,7 +96,7 @@ export const useBookingStore = create<BookingState>()(
               id: `GIG${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
               palId: "",
               palName: "",
-              userName: "Malati Devi",
+              clientName: "Malati Devi",
               title: "Morning Care Support",
               date: "26 Feb 2026",
               day: "Thursday",
@@ -109,12 +119,17 @@ export const useBookingStore = create<BookingState>()(
               description: "Senior requires assistance with morning routine and vitals check.",
               duration: "3 Hours",
               familyId: "FAM_MALATI",
+              services: [
+                { id: 'S1', title: 'Medicine administration', duration: '30m', price: 400, status: 'pending' },
+                { id: 'S2', title: 'Light walking support', duration: '1h', price: 400, status: 'pending' },
+                { id: 'S3', title: 'BP monitoring', duration: '15m', price: 400, status: 'pending' }
+              ]
             },
             {
               id: `GIG${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
               palId: "",
               palName: "",
-              userName: "Colonel Krishnan",
+              clientName: "Colonel Krishnan",
               title: "Evening Companion",
               date: "26 Feb 2026",
               day: "Thursday",
@@ -137,11 +152,16 @@ export const useBookingStore = create<BookingState>()(
               description: "Retired officer needs companionship and assistance with meal preparation.",
               duration: "3 Hours",
               familyId: "FAM_KRISHNAN",
+              services: [
+                { id: 'S1', title: 'Dressing assistance', duration: '45m', price: 500, status: 'pending' },
+                { id: 'S2', title: 'Meal prep', duration: '1h', price: 500, status: 'pending' },
+                { id: 'S3', title: 'Reading/Conversation', duration: '1.5h', price: 500, status: 'pending' }
+              ]
             },
           ];
 
           const filteredNewGigs = newGigs.filter(
-            (ng) => !currentBookings.some((cb) => cb.userName === ng.userName && cb.status === "open")
+            (ng) => !currentBookings.some((cb) => cb.clientName === ng.clientName && cb.status === "open")
           );
 
           if (filteredNewGigs.length > 0) {
@@ -185,17 +205,16 @@ export const useBookingStore = create<BookingState>()(
 
         set({ bookings: updatedBookings, isLoading: false });
 
-        useChatStore.getState().createConversation(
-          palId,
-          gig.familyId || `FAM_${gig.userName.split(" ")[0]}`,
-          gig.userName,
-          "family",
-          gig.id
-        );
+        useChatStore.getState().getOrCreateConversation({
+          id: gig.familyId || `FAM_${gig.clientName.split(" ")[0]}`,
+          name: gig.clientName,
+          role: "family",
+          avatar: undefined // could be added if available
+        });
 
         useNotificationStore.getState().addNotification({
           title: "Gig Accepted",
-          message: `You have accepted the gig for ${gig.userName}.`,
+          message: `You have accepted the gig for ${gig.clientName}.`,
           type: "task",
           receiverRole: "pal",
           actionRoute: "/(pal)/active-gig",
@@ -281,7 +300,7 @@ export const useBookingStore = create<BookingState>()(
                 id: `ER${Math.random().toString(36).substr(2, 5).toUpperCase()}`,
                 type: "earning",
                 amount: amount,
-                title: `Care Session: ${gig.userName}`,
+                title: `Care Session: ${gig.clientName}`,
                 date: "Just now",
                 status: "Success",
               },
@@ -300,7 +319,7 @@ export const useBookingStore = create<BookingState>()(
 
         useNotificationStore.getState().addNotification({
           title: "Gig Completed",
-          message: `Care session for ${gig.userName} has ended.`,
+          message: `Care session for ${gig.clientName} has ended.`,
           type: "task",
           receiverRole: "family",
           actionRoute: "/(family)/home",
@@ -309,7 +328,45 @@ export const useBookingStore = create<BookingState>()(
         return { success: true, message: "Gig completed and balance updated." };
       },
 
-      addGig: (gig) =>
+      updateServiceStatus: (gigId, serviceId, status) => {
+        set((state) => {
+          const updatedBookings = state.bookings.map((b) => {
+            if (b.id !== gigId) return b;
+
+            const updatedServices = b.services.map((s) =>
+              s.id === serviceId ? { ...s, status } : s
+            );
+
+            let overallStatus = b.status;
+            if (updatedServices.some((s) => s.status === "in_progress")) {
+              if (overallStatus !== "in_progress") {
+                overallStatus = "in_progress";
+                b.startedAt = Date.now();
+              }
+            } else if (updatedServices.every((s) => s.status === "completed")) {
+              overallStatus = "completed";
+              b.completedAt = Date.now();
+            }
+
+            return { ...b, services: updatedServices, status: overallStatus };
+          });
+
+          return { bookings: updatedBookings };
+        });
+
+        // If overall status became completed, trigger balance update
+        const updatedGig = get().bookings.find(b => b.id === gigId);
+        if (updatedGig?.status === 'completed') {
+          get().completeGig(gigId);
+        }
+      },
+
+      addGig: (gig) => {
+        const services = gig.services || [
+          { id: 'S1', title: gig.title, duration: gig.duration || '1h', price: gig.price, status: 'pending' }
+        ];
+        const totalPrice = services.reduce((sum, s) => sum + s.price, 0);
+
         set((state) => ({
           bookings: [
             ...state.bookings,
@@ -318,9 +375,13 @@ export const useBookingStore = create<BookingState>()(
               id: `GIG${Math.random().toString(36).substring(7).toUpperCase()}`,
               status: "open",
               timestamp: Date.now(),
+              price: totalPrice,
+              paymentAmount: totalPrice,
+              services
             },
           ],
-        })),
+        }));
+      },
 
       cancelBooking: (id) =>
         set((state) => ({
@@ -330,8 +391,9 @@ export const useBookingStore = create<BookingState>()(
       addBooking: (booking: any) => {
         get().addGig({
           ...booking,
-          price: Number(booking.price?.replace(",", "") || 0),
-          paymentAmount: Number(booking.price?.replace(",", "") || 0),
+          clientName: booking.clientName || booking.userName || "Senior Member",
+          price: Number(booking.price?.toString().replace(",", "") || 0),
+          paymentAmount: Number(booking.price?.toString().replace(",", "") || 0),
           title: booking.title || "Care Session",
           location: { address: booking.location || "HSR Layout" },
           familyId: "FAM_USER",
