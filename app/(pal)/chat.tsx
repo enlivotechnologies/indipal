@@ -5,7 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { FlatList, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -15,14 +15,13 @@ export default function ChatListScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { user } = useAuthStore();
-    const { conversations, fetchConversations, isLoading } = useChatStore();
+    const { conversations, fetchConversations } = useChatStore();
     const [search, setSearch] = useState('');
-
     useEffect(() => {
         if (user?.phone) {
             fetchConversations(user.phone);
         }
-    }, [user]);
+    }, [user, fetchConversations]);
 
     const filteredConversations = conversations.filter(conv => {
         return (conv.contactName || '').toLowerCase().includes(search.toLowerCase());
@@ -125,4 +124,4 @@ export default function ChatListScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

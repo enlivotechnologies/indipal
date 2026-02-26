@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { useNotificationStore } from './notificationStore';
 
-export type MessageType = 'text' | 'image' | 'file' | 'location' | 'audio';
+export type MessageType = 'text' | 'image' | 'file' | 'location' | 'audio' | 'typing';
 
 export interface Message {
     id: string;

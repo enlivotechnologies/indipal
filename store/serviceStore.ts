@@ -57,3 +57,5 @@ export const useServiceStore = create<ServiceState>()(
         }
     )
 );
+
+export default useServiceStore;

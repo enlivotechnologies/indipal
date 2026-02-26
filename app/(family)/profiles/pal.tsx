@@ -1,13 +1,14 @@
 import { useAuthStore } from '@/store/authStore';
 import { useBookingStore } from '@/store/bookingStore';
+import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 // Precise February 2026 data
 const AVAILABILITY_DATA = [
@@ -75,6 +76,8 @@ export default function PalProfileScreen() {
         );
     }, [bookings, palData.id, currentDay.date, selectedTimeSlot]);
 
+    const { addNotification } = useErrandStore();
+
     const handleBooking = () => {
         if (!selectedTimeSlot) return;
 
@@ -88,6 +91,13 @@ export default function PalProfileScreen() {
             day: currentDay.day,
             time: selectedTimeSlot,
             price: palData.hourlyRate
+        });
+
+        // Notify Senior
+        addNotification({
+            title: 'New Visit Scheduled',
+            message: `Your family has booked a session with ${palData.name} on ${currentDay.date} at ${selectedTimeSlot}.`,
+            type: 'service',
         });
 
         // Optional: Navigate to home or show success modal
@@ -109,7 +119,7 @@ export default function PalProfileScreen() {
             if (ampm === 'AM' && hh === 12) hh = 0;
             const targetDate = new Date(2026, 1, dayNum, hh, mm);
             return targetDate < systemNow;
-        } catch (err) {
+        } catch {
             return false;
         }
     };
@@ -394,4 +404,4 @@ export default function PalProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

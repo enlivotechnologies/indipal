@@ -121,7 +121,7 @@ export default function RegisterFamily() {
                         {step === 2 && (
                             <Animated.View entering={FadeInRight} exiting={FadeOutLeft}>
                                 <Text className="text-2xl font-bold text-gray-900 mb-2">Parent Details</Text>
-                                <Text className="text-gray-500 mb-6">The "Connection Keys" to link accounts.</Text>
+                                <Text className="text-gray-500 mb-6">The &quot;Connection Keys&quot; to link accounts.</Text>
 
                                 <View className="mb-8">
                                     <Text className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">How many parents?</Text>
@@ -150,7 +150,7 @@ export default function RegisterFamily() {
                                 {formData.parentsDetails.map((parent, idx) => (
                                     <View key={idx} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm mb-6">
                                         <Text className="text-lg font-bold text-gray-800 mb-6">Parent {idx + 1}</Text>
-                                        <InputField label="Full Name" placeholder="Elder's name" value={parent.name} onChangeText={(t) => updateParentDetail(idx, 'name', t)} />
+                                        <InputField label="Full Name" placeholder="Elder&apos;s name" value={parent.name} onChangeText={(t) => updateParentDetail(idx, 'name', t)} />
 
                                         <InputField label="Parent's Mobile (Connection Key)" placeholder="+91 XXXXX XXXXX" keyboardType="numeric" value={parent.phone} onChangeText={(t) => updateParentDetail(idx, 'phone', t)} />
                                         <Text className="text-[10px] text-gray-400 -mt-4 mb-4 italic px-1">* Must match what they use to log in.</Text>
@@ -224,7 +224,7 @@ export default function RegisterFamily() {
                     </ScrollView>
                 </LinearGradient>
             </KeyboardAvoidingView>
-        </View>
+        </View >
     );
 }
 

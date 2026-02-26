@@ -16,7 +16,7 @@ export default function FamilyNotificationsScreen() {
 
     useEffect(() => {
         fetchNotifications('family');
-    }, []);
+    }, [fetchNotifications]);
 
     const handleNotificationClick = async (notif: Notification) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -189,4 +189,4 @@ export default function FamilyNotificationsScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

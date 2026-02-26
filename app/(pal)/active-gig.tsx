@@ -1,37 +1,53 @@
 import { BottomTab } from "@/components/pal/BottomTab";
+import { GigChecklist } from '@/components/pal/GigChecklist';
 import { useBookingStore } from "@/store/bookingStore";
+import { useChatStore } from "@/store/chatStore";
+import { useGigStore } from '@/store/gigStore';
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BRAND_GREEN = '#10B981';
 
-export default function ActiveGigScreen() {
+
+export default function PalActiveGigPage() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { bookings, updateGigStatus, completeGig, updateServiceStatus } = useBookingStore();
+    const { gigs, updateGigStatus: updateErrandStatus } = useGigStore();
 
-    // Find the current active gig
-    const activeGig = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
+    // Find the current active gig from either store
+    const activeBooking = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
+    const activeErrand = gigs.find(g => ['approved_and_assigned', 'matched', 'active'].includes(g.status));
+
+    const activeGig = activeBooking || activeErrand;
 
     const handleAction = async () => {
         if (!activeGig) return;
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-        if (activeGig.status === 'accepted') {
-            await updateGigStatus(activeGig.id, 'on_the_way');
-        } else if (activeGig.status === 'on_the_way') {
-            await updateGigStatus(activeGig.id, 'on_site');
-        } else if (activeGig.status === 'on_site') {
-            await updateGigStatus(activeGig.id, 'in_progress');
-        } else if (activeGig.status === 'in_progress') {
-            const res = await completeGig(activeGig.id);
-            if (res.success) {
+        if (activeBooking) {
+            if (activeGig.status === 'accepted') {
+                await updateGigStatus(activeGig.id, 'on_the_way');
+            } else if (activeGig.status === 'on_the_way') {
+                await updateGigStatus(activeGig.id, 'on_site');
+            } else if (activeGig.status === 'on_site') {
+                await updateGigStatus(activeGig.id, 'in_progress');
+            } else if (activeGig.status === 'in_progress') {
+                const res = await completeGig(activeGig.id);
+                if (res.success) {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    router.replace('/(pal)/home');
+                }
+            }
+        } else if (activeErrand) {
+            const allChecked = activeErrand.items?.every(i => i.checked) ?? true;
+            if (allChecked) {
+                updateErrandStatus(activeErrand.id, 'completed');
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                 router.replace('/(pal)/home');
             }
@@ -39,13 +55,23 @@ export default function ActiveGigScreen() {
     };
 
     const getButtonStyles = () => {
-        if (!activeGig) return { text: 'Unknown', bg: 'bg-gray-400' };
-        switch (activeGig.status) {
-            case 'accepted': return { text: 'Start Travel', bg: 'bg-indigo-600' };
-            case 'on_the_way': return { text: 'Mark Arrived', bg: 'bg-orange-500' };
-            case 'on_site': return { text: 'Start Session', bg: 'bg-emerald-600' };
-            case 'in_progress': return { text: `Complete Gig • ₹${activeGig.price}`, bg: 'bg-gray-900' };
-            default: return { text: 'Action', bg: 'bg-gray-900' };
+        if (!activeGig) return { text: 'Unknown', bg: 'bg-gray-400', disabled: false };
+
+        if (activeBooking) {
+            switch (activeGig.status) {
+                case 'accepted': return { text: 'Start Travel', bg: 'bg-indigo-600', disabled: false };
+                case 'on_the_way': return { text: 'Mark Arrived', bg: 'bg-orange-500', disabled: false };
+                case 'on_site': return { text: 'Start Session', bg: 'bg-emerald-600', disabled: false };
+                case 'in_progress': return { text: `Complete Gig • ₹${activeGig.price}`, bg: 'bg-gray-900', disabled: false };
+                default: return { text: 'Action', bg: 'bg-gray-900', disabled: false };
+            }
+        } else {
+            const allChecked = activeErrand?.items?.every(i => i.checked) ?? true;
+            return {
+                text: allChecked ? 'Finish & Request Payment' : 'Complete Checklist First',
+                bg: allChecked ? 'bg-emerald-600' : 'bg-gray-300',
+                disabled: !allChecked
+            };
         }
     };
 
@@ -75,7 +101,14 @@ export default function ActiveGigScreen() {
                 <Text className="text-2xl font-black text-gray-900">Active Gig</Text>
                 <View className="flex-row items-center gap-x-2">
                     <TouchableOpacity
-                        onPress={() => router.push({ pathname: '/(pal)/chat/[id]', params: { id: activeGig.palId } } as any)}
+                        onPress={() => {
+                            const convId = useChatStore.getState().getOrCreateConversation({
+                                id: activeGig.familyId || `FAM_${(activeGig as any).clientName || (activeGig as any).seniorName}`,
+                                name: (activeGig as any).clientName || (activeGig as any).seniorName || 'Family',
+                                role: 'family'
+                            });
+                            router.push({ pathname: '/(pal)/chat-room', params: { id: convId } } as any);
+                        }}
                         className="w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center border border-emerald-100"
                     >
                         <Ionicons name="chatbubble-ellipses-outline" size={20} color="#10B981" />
@@ -90,8 +123,8 @@ export default function ActiveGigScreen() {
                             <Ionicons name="person" size={32} color="white" />
                         </View>
                         <View className="ml-4">
-                            <Text className="text-white font-black text-xl">{activeGig.clientName}</Text>
-                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeGig.title}</Text>
+                            <Text className="text-white font-black text-xl">{(activeGig as any).clientName || (activeGig as any).seniorName}</Text>
+                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{(activeGig as any).title || `${(activeGig as any).category || 'Service'} Pickup`}</Text>
                         </View>
                     </View>
 
@@ -102,7 +135,7 @@ export default function ActiveGigScreen() {
                             </View>
                             <View className="ml-4 flex-1">
                                 <Text className="text-white/50 text-[10px] uppercase font-black">Location</Text>
-                                <Text className="text-white font-bold text-sm" numberOfLines={1}>{activeGig.location.address}</Text>
+                                <Text className="text-white font-bold text-sm" numberOfLines={1}>{activeBooking ? (activeBooking as any).location.address : 'Senior Residence'}</Text>
                             </View>
                         </View>
                         <View className="flex-row items-center">
@@ -111,7 +144,7 @@ export default function ActiveGigScreen() {
                             </View>
                             <View className="ml-4">
                                 <Text className="text-white/50 text-[10px] uppercase font-black">Scheduled Time</Text>
-                                <Text className="text-white font-bold text-sm">{activeGig.time}</Text>
+                                <Text className="text-white font-bold text-sm">{activeBooking ? (activeBooking as any).time : 'Active Now'}</Text>
                             </View>
                         </View>
                     </View>
@@ -123,36 +156,44 @@ export default function ActiveGigScreen() {
                         </View>
                         <View className="items-end">
                             <Text className="text-white/40 text-[10px] uppercase font-black">Total Amount</Text>
-                            <Text className="text-white font-black text-lg mt-1">₹{activeGig.price}</Text>
+                            <Text className="text-white font-black text-lg mt-1">₹{(activeGig as any).price || (activeGig as any).budget || '250'}</Text>
                         </View>
                     </View>
 
                     {/* Overall Progress for Gig */}
-                    {activeGig.services && activeGig.services.length > 0 && (
+                    {activeBooking && activeBooking.services && activeBooking.services.length > 0 && (
                         <View className="mt-6">
                             <View className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
                                 <View
-                                    style={{ width: `${(activeGig.services.filter(s => s.status === 'completed').length / activeGig.services.length) * 100}%` }}
+                                    style={{ width: `${(activeBooking.services.filter(s => s.status === 'completed').length / activeBooking.services.length) * 100}%` }}
                                     className="h-full bg-emerald-500"
                                 />
                             </View>
                             <View className="flex-row justify-between mt-2">
                                 <Text className="text-white/30 text-[7px] font-black uppercase tracking-widest">
-                                    {activeGig.services.filter(s => s.status === 'completed').length} of {activeGig.services.length} services completed
+                                    {activeBooking.services.filter(s => s.status === 'completed').length} of {activeBooking.services.length} services completed
                                 </Text>
                                 <Text className="text-emerald-400 text-[7px] font-black uppercase tracking-widest">
-                                    {Math.round((activeGig.services.filter(s => s.status === 'completed').length / activeGig.services.length) * 100)}%
+                                    {Math.round((activeBooking.services.filter(s => s.status === 'completed').length / activeBooking.services.length) * 100)}%
                                 </Text>
                             </View>
                         </View>
                     )}
                 </Animated.View>
 
+                {/* Errands Checklist */}
+                {activeErrand && (activeErrand as any).items && (activeErrand as any).items.length > 0 && (
+                    <>
+                        <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Gig Checklist</Text>
+                        <GigChecklist gigId={activeErrand.id} items={(activeErrand as any).items} />
+                    </>
+                )}
+
                 {/* Service Items Section */}
-                {["on_site", "in_progress", "completed", "accepted", "on_the_way"].includes(activeGig.status) && activeGig.services && activeGig.services.length > 0 && (
+                {activeBooking && ["on_site", "in_progress", "completed", "accepted", "on_the_way"].includes(activeGig.status) && activeBooking.services && activeBooking.services.length > 0 && (
                     <View className="mb-10">
                         <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Services List</Text>
-                        {activeGig.services.map((service, idx) => (
+                        {activeBooking.services.map((service: any, idx: number) => (
                             <Animated.View
                                 key={service.id}
                                 entering={FadeInUp.delay(100 * idx)}
@@ -205,36 +246,47 @@ export default function ActiveGigScreen() {
                     </View>
                 )}
 
-                {/* Fallback for single service gigs or initial phases */}
-                {(!activeGig.services || activeGig.services.length === 0 || !["on_site", "in_progress"].includes(activeGig.status)) && (
-                    <>
-                        <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Session Protocol</Text>
-                        {[
-                            { id: 1, task: 'Acceptance & Assignment', done: ['accepted', 'on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
-                            { id: 2, task: 'Travel Started', done: ['on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
-                            { id: 3, task: 'Arrived at Site', done: ['on_site', 'in_progress'].includes(activeGig.status) },
-                            { id: 4, task: 'Service In Progress', done: ['in_progress'].includes(activeGig.status) },
-                            { id: 5, task: 'Payment & Completion', done: activeGig.status === 'completed' },
-                        ].map((item, idx) => (
-                            <View
-                                key={item.id}
-                                className={`flex-row items-center p-6 rounded-[24px] mb-4 border ${item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}
-                            >
-                                <View className={`w-6 h-6 rounded-lg items-center justify-center ${item.done ? 'bg-emerald-500' : 'bg-white border border-gray-200'}`}>
-                                    {item.done && <Ionicons name="checkmark" size={14} color="white" />}
-                                </View>
-                                <Text className={`ml-4 font-bold text-sm ${item.done ? 'text-emerald-900' : 'text-gray-600'}`}>{item.task}</Text>
-                            </View>
-                        ))}
-                    </>
-                )}
+                {/* Protocol Section */}
+                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Session Protocol</Text>
+
+                {activeBooking ? [
+                    { id: 1, task: 'Acceptance & Assignment', done: ['accepted', 'on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 2, task: 'Travel Started', done: ['on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 3, task: 'Arrived at Site', done: ['on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 4, task: 'Service In Progress', done: ['in_progress'].includes(activeGig.status) },
+                    { id: 5, task: 'Payment & Completion', done: activeGig.status === 'completed' },
+                ].map((item, idx) => (
+                    <View
+                        key={item.id}
+                        className={`flex-row items-center p-6 rounded-[24px] mb-4 border ${item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}
+                    >
+                        <View className={`w-6 h-6 rounded-lg items-center justify-center ${item.done ? 'bg-emerald-500' : 'bg-white border border-gray-200'}`}>
+                            {item.done && <Ionicons name="checkmark" size={14} color="white" />}
+                        </View>
+                        <Text className={`ml-4 font-bold text-sm ${item.done ? 'text-emerald-900' : 'text-gray-600'}`}>{item.task}</Text>
+                    </View>
+                )) : [
+                    { id: 1, task: 'Gig Claimed', done: true },
+                    { id: 2, task: 'Checklist Completed', done: activeErrand?.items?.every(i => i.checked) ?? false },
+                    { id: 3, task: 'Delivery & Payout', done: activeGig.status === 'completed' },
+                ].map((item, idx) => (
+                    <View
+                        key={item.id}
+                        className={`flex-row items-center p-6 rounded-[24px] mb-4 border ${item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}
+                    >
+                        <View className={`w-6 h-6 rounded-lg items-center justify-center ${item.done ? 'bg-emerald-500' : 'bg-white border border-gray-200'}`}>
+                            {item.done && <Ionicons name="checkmark" size={14} color="white" />}
+                        </View>
+                        <Text className={`ml-4 font-bold text-sm ${item.done ? 'text-emerald-900' : 'text-gray-600'}`}>{item.task}</Text>
+                    </View>
+                ))}
 
                 {/* Main Action Button Logic */}
                 {activeGig.status !== 'completed' && (
                     <TouchableOpacity
                         onPress={handleAction}
-                        className={`mt-6 ${btn.bg} py-6 rounded-[32px] items-center shadow-2xl overflow-hidden ${activeGig.status === 'in_progress' && activeGig.services?.some(s => s.status !== 'completed') ? 'opacity-50' : ''}`}
-                        disabled={activeGig.status === 'in_progress' && activeGig.services?.some(s => s.status !== 'completed')}
+                        className={`mt-10 ${btn.bg} py-6 rounded-[32px] items-center shadow-2xl overflow-hidden ${btn.disabled ? 'opacity-50' : ''}`}
+                        disabled={btn.disabled}
                     >
                         <LinearGradient
                             colors={['transparent', 'rgba(0,0,0,0.05)']}
@@ -250,12 +302,8 @@ export default function ActiveGigScreen() {
     );
 }
 
-
 const styles = StyleSheet.create({
     header: {
         backgroundColor: 'white',
-    },
-    tabBar: {
-        ...(Platform.OS === 'ios' && { backdropFilter: 'blur(20px)' }),
     }
 });

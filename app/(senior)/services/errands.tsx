@@ -3,19 +3,15 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Dimensions, Image, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
     FadeIn,
     FadeInDown,
-    Layout,
-    useAnimatedStyle,
-    withRepeat,
-    withSequence,
-    withTiming
+    Layout
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type ErrandsStatus = 'pending' | 'in-progress' | 'completed';
 
@@ -59,12 +55,7 @@ const INITIAL_ERRANDS: Errand[] = [
 ];
 
 const PulseCircle = () => {
-    const style = useAnimatedStyle(() => ({
-        transform: [{ scale: withRepeat(withSequence(withTiming(1.2), withTiming(1)), -1, true) }],
-        opacity: withRepeat(withSequence(withTiming(0.4), withTiming(0.8)), -1, true),
-    }));
-
-    return <Animated.View style={[styles.pulse, style]} />;
+    return <View style={styles.pulse} />;
 };
 
 export default function ErrandsScreen() {
@@ -129,7 +120,7 @@ export default function ErrandsScreen() {
 
                     <View className="items-center">
                         <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-1">Control Tower</Text>
-                        <Text className="text-xl font-black text-gray-900">Today's Errands</Text>
+                        <Text className="text-xl font-black text-gray-900">Today&apos;s Errands</Text>
                     </View>
 
                     <View className="w-12" />

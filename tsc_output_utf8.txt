@@ -1,0 +1,19 @@
+﻿app/(pal)/active-gig.tsx(156,32): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(156,54): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(160,67): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(160,83): error TS7006: Parameter 's' implicitly has an 'any' type.
+app/(pal)/active-gig.tsx(160,133): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(166,48): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(166,64): error TS7006: Parameter 's' implicitly has an 'any' type.
+app/(pal)/active-gig.tsx(166,117): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(169,60): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.
+app/(pal)/active-gig.tsx(169,76): error TS7006: Parameter 's' implicitly has an 'any' type.
+app/(pal)/active-gig.tsx(169,126): error TS2339: Property 'services' does not exist on type 'Booking | Gig'.
+  Property 'services' does not exist on type 'Gig'.

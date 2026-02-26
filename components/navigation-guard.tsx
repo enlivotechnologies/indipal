@@ -56,7 +56,7 @@ export function NavigationGuard() {
                     pal: "/(pal)/home",
                 };
                 // @ts-ignore
-                const target = roleRoutes[role] || "/(auth)/welcome";
+                const target = roleRoutes[role as keyof typeof roleRoutes] || "/(auth)/onboarding";
                 router.replace(target as any);
             }
         }

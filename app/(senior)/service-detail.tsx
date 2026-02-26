@@ -1,4 +1,3 @@
-import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -6,6 +5,7 @@ import { useState } from 'react';
 import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useServiceStore } from '../../store/serviceStore';
 
 export default function GenericSeniorServiceScreen() {
     const { title, icon, color } = useLocalSearchParams();
@@ -48,7 +48,7 @@ export default function GenericSeniorServiceScreen() {
                     </View>
                     <Text className="text-3xl font-black text-gray-900 text-center mb-4">Request Sent!</Text>
                     <Text className="text-gray-500 text-center text-lg font-medium leading-7 mb-12">
-                        We've notified your family about your {title} request. They will approve and pay for the service shortly.
+                        We&apos;ve notified your family about your {title} request. They will approve and pay for the service shortly.
                     </Text>
                     <TouchableOpacity
                         onPress={() => router.replace('/(senior)/services' as any)}

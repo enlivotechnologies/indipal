@@ -1,27 +1,24 @@
 import { BottomTab } from "@/components/pal/BottomTab";
 import { useAuthStore } from "@/store/authStore";
 import { useBookingStore } from "@/store/bookingStore";
-import { useHealthStore } from "@/store/healthStore";
 import { useNotificationStore } from "@/store/notificationStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect } from "react";
-import { ActivityIndicator, Dimensions, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { Easing, FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get('window');
+
 const BRAND_GREEN = '#10B981';
 const DARK_GREEN = '#065F46';
-const SOFT_GREEN = '#ECFDF5';
 
 export default function PalHome() {
     const user = useAuthStore((state) => state.user);
-    const insets = useSafeAreaInsets();
     const router = useRouter();
-    const healthRecords = useHealthStore((state) => state.records);
+    const insets = useSafeAreaInsets();
     const { bookings, fetchGigs, hasNewGigs, setHasNewGigs, isLoading } = useBookingStore();
     const { unreadCount, fetchNotifications } = useNotificationStore();
 
@@ -34,7 +31,7 @@ export default function PalHome() {
         }, 20000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [fetchGigs, fetchNotifications]);
 
     const pendingAppointments = bookings.filter(b => b.status === "open").sort((a, b) => b.timestamp - a.timestamp);
     const activeGig = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
@@ -242,7 +239,7 @@ export default function PalHome() {
                     <View className="bg-gray-50 p-10 rounded-[32px] border border-gray-100 items-center justify-center mb-8 opacity-60">
                         <Ionicons name="sparkles-outline" size={32} color="#D1D5DB" />
                         <Text className="text-gray-400 font-bold text-xs mt-3 uppercase tracking-widest text-center">No jobs available right now</Text>
-                        <Text className="text-gray-300 text-[10px] mt-1 text-center font-medium">We'll alert you when a new gig appears.</Text>
+                        <Text className="text-gray-300 text-[10px] mt-1 text-center font-medium">We&apos;ll alert you when a new gig appears.</Text>
                     </View>
                 )}
 
@@ -337,47 +334,7 @@ function QuickStatItem({ label, value, icon, color }: any) {
     );
 }
 
-function QuickActionItem({ icon, label, onPress, bg, delay }: any) {
-    return (
-        <Animated.View entering={FadeInUp.delay(delay).duration(500)}>
-            <TouchableOpacity
-                onPress={onPress}
-                activeOpacity={0.8}
-                className="items-center"
-            >
-                <View style={{ backgroundColor: bg }} className="w-16 h-16 rounded-[24px] items-center justify-center shadow-sm">
-                    <Ionicons name={icon} size={28} color={BRAND_GREEN} />
-                </View>
-                <Text className="text-gray-900 font-bold text-[11px] mt-3 uppercase tracking-wider">{label}</Text>
-            </TouchableOpacity>
-        </Animated.View>
-    );
-}
 
-function ActiveTaskItem({ icon, label }: any) {
-    return (
-        <View className="flex-row items-center">
-            <View className="w-8 h-8 bg-white/10 rounded-xl items-center justify-center">
-                <Ionicons name={icon} size={16} color="white" />
-            </View>
-            <Text className="text-white/80 text-xs font-bold ml-4">{label}</Text>
-        </View>
-    );
-}
-
-function HealthInsightCard({ icon, label, value, color }: any) {
-    return (
-        <View className="flex-1 bg-gray-50 p-5 rounded-[32px] border border-gray-100">
-            <View className="flex-row items-center mb-3">
-                <View style={{ backgroundColor: `${color}15` }} className="w-8 h-8 rounded-xl items-center justify-center">
-                    <Ionicons name={icon} size={16} color={color} />
-                </View>
-                <Text className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-3">{label}</Text>
-            </View>
-            <Text className="text-xl font-black text-gray-900">{value}</Text>
-        </View>
-    );
-}
 
 
 const styles = StyleSheet.create({

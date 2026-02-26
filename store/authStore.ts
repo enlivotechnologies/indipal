@@ -6,6 +6,8 @@ import { useNotificationStore } from './notificationStore';
 export type UserRole = 'senior' | 'family' | 'pal';
 
 export interface User {
+  id?: string;
+  familyId?: string;
   name?: string;
   phone?: string;
   role?: UserRole;
@@ -51,6 +53,8 @@ export interface User {
   relationshipToSenior?: string;
   email?: string;
   parentsDetails?: {
+    id?: string;
+    familyId?: string;
     name: string;
     age: string;
     gender: string;

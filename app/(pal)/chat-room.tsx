@@ -15,7 +15,6 @@ import {
     KeyboardAvoidingView,
     Linking,
     Platform,
-    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -31,7 +30,7 @@ export default function ChatRoomScreen() {
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
     const { user } = useAuthStore();
-    const { conversations, sendMessage, markAsRead, blockedUserIds } = useChatStore();
+    const { conversations, messages, sendMessage, markAsRead, blockedUserIds } = useChatStore();
     const [inputText, setInputText] = useState('');
     const [showAttachments, setShowAttachments] = useState(false);
     const [isSending, setIsSending] = useState(false);
@@ -55,7 +54,7 @@ export default function ChatRoomScreen() {
         return () => {
             if (id) markAsRead(id as string);
         };
-    }, [id]);
+    }, [id, markAsRead]);
 
     useEffect(() => {
         setTimeout(() => {
@@ -506,4 +505,4 @@ function AudioPlayer({ uri, duration, isMe }: { uri: string; duration: number; i
     );
 }
 
-const styles = StyleSheet.create({});
+

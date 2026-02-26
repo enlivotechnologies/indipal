@@ -88,7 +88,7 @@ export default function RegisterSenior() {
                         {step === 1 && (
                             <Animated.View entering={FadeInRight} exiting={FadeOutLeft}>
                                 <Text className="text-3xl font-black text-gray-900 mb-2">Confirm Identity</Text>
-                                <Text className="text-gray-500 mb-10 font-medium leading-6">This helps us match your profile with your family's records.</Text>
+                                <Text className="text-gray-500 mb-10 font-medium leading-6">This helps us match your profile with your family&apos;s records.</Text>
 
                                 <View className="items-center mb-8">
                                     <TouchableOpacity className="w-28 h-28 bg-purple-50 rounded-[40px] items-center justify-center border-2 border-dashed border-purple-200">

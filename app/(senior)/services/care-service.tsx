@@ -46,7 +46,7 @@ export default function GenericServiceScreen() {
                         <Text className="ml-3 font-black text-gray-900">Get Notified</Text>
                     </View>
                     <Text className="text-gray-500 text-sm leading-6">
-                        We'll alert you the moment our first certified specialist for {title} becomes available.
+                        We&apos;ll alert you the moment our first certified specialist for {title} becomes available.
                     </Text>
                 </View>
 

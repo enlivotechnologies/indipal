@@ -80,7 +80,7 @@ export default function NotificationDetailScreen() {
                     </View>
 
                     <View className="bg-gray-50 p-8 rounded-[40px] border border-gray-50">
-                        <Text className="text-gray-700 text-lg font-medium leading-8 italic">"{notification.message}"</Text>
+                        <Text className="text-gray-700 text-lg font-medium leading-8 italic">&quot;{notification.message}&quot;</Text>
                     </View>
 
                     {notification.actionRoute && (

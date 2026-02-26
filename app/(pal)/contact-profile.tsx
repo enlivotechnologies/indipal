@@ -199,7 +199,7 @@ export default function ContactProfileScreen() {
                                         </View>
                                         <View className="ml-4 flex-1">
                                             <Text className="text-gray-900 font-bold text-xs" numberOfLines={1}>{m.fileName}</Text>
-                                            <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{(m.fileSize || 0 / 1024).toFixed(1)} KB</Text>
+                                            <Text className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">{((m.fileSize || 0) / 1024).toFixed(1)} KB</Text>
                                         </View>
                                         <Ionicons name="download-outline" size={18} color="#9CA3AF" />
                                     </TouchableOpacity>

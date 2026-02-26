@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Modal,
     Pressable,
@@ -26,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type HouseHelpService = {
     id: string;
@@ -87,6 +86,7 @@ export default function HouseHelpScreen() {
     const [selectedService, setSelectedService] = useState<HouseHelpService | null>(null);
     const [viewItem, setViewItem] = useState<HouseHelpService | null>(null);
     const [orderStatus, setOrderStatus] = useState<'idle' | 'paying' | 'confirmed'>('idle');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [isConfirmed, setIsConfirmed] = useState(false);
     const navigation = useNavigation();
 
@@ -147,11 +147,11 @@ export default function HouseHelpScreen() {
                         onPress={() => {
                             setIsConfirmed(false);
                             setOrderStatus('idle');
-                            router.replace('/(family)/care' as any);
+                            router.replace('/(senior)/services' as any);
                         }}
                         className="bg-gray-900 px-12 py-5 rounded-[24px] shadow-xl shadow-black/20 w-full"
                     >
-                        <Text className="text-white font-black uppercase tracking-widest text-center">Back to Care Hub</Text>
+                        <Text className="text-white font-black uppercase tracking-widest text-center">Back to Services</Text>
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -165,7 +165,7 @@ export default function HouseHelpScreen() {
                 style={{ paddingTop: Math.max(insets.top, 20) }}
             >
                 <TouchableOpacity
-                    onPress={() => router.replace('/(family)/care' as any)}
+                    onPress={() => router.replace('/(senior)/services' as any)}
                     className="w-12 h-12 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100"
                 >
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
@@ -204,10 +204,30 @@ export default function HouseHelpScreen() {
                     </LinearGradient>
                 </Animated.View>
 
+                {/* Categories */}
+                <View className="mb-8">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6" contentContainerStyle={{ paddingRight: 40 }}>
+                        {['All', 'Cleaning', 'Cooking', 'Maintenance'].map((cat) => (
+                            <TouchableOpacity
+                                key={cat}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    setSelectedCategory(cat);
+                                }}
+                                className={`mr-3 px-6 py-3 rounded-2xl border ${selectedCategory === cat ? 'bg-orange-600 border-orange-600 shadow-md shadow-orange-100' : 'bg-white border-gray-100'}`}
+                            >
+                                <Text className={`text-[10px] font-black uppercase tracking-widest ${selectedCategory === cat ? 'text-white' : 'text-gray-400'}`}>
+                                    {cat}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
                 {/* Services List */}
                 <View className="px-6 mb-10">
                     <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-6 ml-1">Daily Home Operations</Text>
-                    {HELP_SERVICES.map((service, idx) => (
+                    {HELP_SERVICES.filter(s => selectedCategory === 'All' || s.category === selectedCategory).map((service, idx) => (
                         <Animated.View
                             key={service.id}
                             entering={FadeInUp.delay(200 + idx * 100).duration(600).easing(Easing.inOut(Easing.ease))}
@@ -378,4 +398,4 @@ export default function HouseHelpScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

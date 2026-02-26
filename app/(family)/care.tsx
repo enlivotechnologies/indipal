@@ -13,12 +13,7 @@ const CORE_SERVICES = [
     { id: '4', title: 'Pharmacy', subtitle: 'Medicines', icon: 'bandage', color: '#6366F1', image: 'https://images.unsplash.com/photo-1587854692152-cbe660dbbb88?auto=format&fit=crop&q=80&w=400', route: '/(family)/services/pharmacy' },
 ];
 
-const EXTENDED_SERVICES = [
-    { id: '5', title: 'Doctor', icon: 'medical', color: '#3B82F6', image: 'https://images.unsplash.com/photo-1559839734-2b71f1536783?auto=format&fit=crop&q=80&w=400' },
-    { id: '6', title: 'Lab Test', icon: 'flask', color: '#8B5CF6', image: 'https://images.unsplash.com/photo-1581093458791-9f3c3250bb8b?auto=format&fit=crop&q=80&w=400' },
-    { id: '7', title: 'Ambulance', icon: 'bus', color: '#EF4444', image: 'https://images.unsplash.com/photo-1516550135131-fe3dcb0bedc7?auto=format&fit=crop&q=80&w=400' },
-    { id: '8', title: 'Physio', icon: 'heart', color: '#EC4899', image: 'https://images.unsplash.com/photo-1519824145371-296894a0daa9?auto=format&fit=crop&q=80&w=400' },
-];
+
 
 export default function CareHubScreen() {
     const router = useRouter();
@@ -127,7 +122,6 @@ export default function CareHubScreen() {
                 </View>
 
                 {/* Extended Services */}
-
 
             </ScrollView>
 

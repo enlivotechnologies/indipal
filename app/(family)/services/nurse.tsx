@@ -1,3 +1,4 @@
+import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,7 +7,6 @@ import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Modal,
     Pressable,
@@ -27,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type NurseService = {
     id: string;
@@ -151,6 +151,8 @@ export default function NurseBookingScreen() {
         return unsubscribe;
     }, [navigation]);
 
+    const { addNotification } = useErrandStore();
+
     const handleConfirm = () => {
         if (!selectedService) {
             Alert.alert("Selection Required", "Please select a nursing specialization.");
@@ -163,6 +165,13 @@ export default function NurseBookingScreen() {
             setOrderStatus('confirmed');
             setIsConfirmed(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+            // Notify Senior
+            addNotification({
+                title: 'New Service Scheduled',
+                message: `Your family has secured ${selectedService.title} for you. A nurse will visit shortly.`,
+                type: 'service',
+            });
         }, 3000);
     };
 
@@ -638,4 +647,4 @@ export default function NurseBookingScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

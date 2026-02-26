@@ -3,11 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import React from "react";
-import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useServiceStore } from "../../store/serviceStore";
 
-const { width } = Dimensions.get("window");
+
 const BRAND_PURPLE = '#6E5BFF';
 
 const SERVICES = [
@@ -21,6 +22,8 @@ export default function ServicesList() {
     const router = useRouter();
     const pathname = usePathname();
     const insets = useSafeAreaInsets();
+    const orders = useServiceStore((state) => state.orders);
+    const activeOrders = orders.filter(o => o.status !== 'Completed');
 
     const activeTab = pathname.includes('home') ? 'Home' :
         pathname.includes('services') ? 'Services' :
@@ -28,6 +31,7 @@ export default function ServicesList() {
                 pathname.includes('video') ? 'Video' : 'Services';
 
     const handleTabPress = (tab: string) => {
+        if (tab === activeTab) return; // Prevention
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
         if (tab === 'Home') router.replace('/(senior)/home' as any);
         if (tab === 'Services') router.replace('/(senior)/services' as any);
@@ -66,7 +70,7 @@ export default function ServicesList() {
                 }}
             >
                 {/* Search Bar */}
-                <View className="mb-8">
+                <View className="mb-10 mt-10">
                     <View className="bg-gray-50 flex-row items-center px-6 py-4 rounded-[28px] border border-gray-200">
                         <Ionicons name="search" size={20} color="#9CA3AF" />
                         <TextInput
@@ -75,6 +79,54 @@ export default function ServicesList() {
                         />
                     </View>
                 </View>
+
+                {/* Active Bookings Section (Only shown if bookings exist) */}
+                {activeOrders.length > 0 && (
+                    <View className="mb-10">
+                        <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Active Bookings</Text>
+                        {activeOrders.map((order, idx) => (
+                            <Animated.View
+                                key={order.id}
+                                entering={FadeInUp.delay(idx * 100)}
+                            >
+                                <TouchableOpacity
+                                    activeOpacity={0.8}
+                                    onPress={() => router.push({
+                                        pathname: '/(senior)/member-detail',
+                                        params: {
+                                            name: order.serviceTitle,
+                                            relation: order.details?.type || 'Care Professional',
+                                            icon: order.serviceIcon,
+                                            phone: '+91 98765 43210',
+                                            bio: `Assigned professional for your ${order.serviceTitle} requirements. Certified and verified by EnlivoCare.`,
+                                            specialization: `${order.serviceTitle},Senior Support`
+                                        }
+                                    } as any)}
+                                    className="bg-indigo-50/50 p-6 rounded-[32px] border border-indigo-100/50 mb-4 flex-row items-center"
+                                >
+                                    <View className="w-14 h-14 bg-white rounded-2xl items-center justify-center border border-indigo-50 shadow-sm">
+                                        <Ionicons name={order.serviceIcon as any} size={28} color={BRAND_PURPLE} />
+                                    </View>
+                                    <View className="ml-5 flex-1">
+                                        <Text className="text-gray-900 font-black text-lg">{order.serviceTitle}</Text>
+                                        <Text className="text-indigo-500 text-[10px] font-black uppercase tracking-widest mt-1">
+                                            {order.status} • {order.details?.type || 'Care Professional'}
+                                        </Text>
+                                        <Text className="text-gray-400 text-[10px] font-bold mt-1">
+                                            Scheduled for: {order.details?.date || 'Today'}
+                                        </Text>
+                                    </View>
+                                    <TouchableOpacity
+                                        onPress={() => Linking.openURL('tel:+919876543210')}
+                                        className="w-12 h-12 bg-white rounded-full items-center justify-center border border-gray-100 shadow-sm"
+                                    >
+                                        <Ionicons name="call" size={20} color={BRAND_PURPLE} />
+                                    </TouchableOpacity>
+                                </TouchableOpacity>
+                            </Animated.View>
+                        ))}
+                    </View>
+                )}
 
                 {/* Core Services Grid */}
                 <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Daily Essentials</Text>
@@ -89,8 +141,15 @@ export default function ServicesList() {
                                 activeOpacity={0.9}
                                 onPress={() => {
                                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    const routes: Record<string, string> = {
+                                        'Home Nurse': '/(senior)/services/nurse',
+                                        'House Help': '/(senior)/services/house-help',
+                                        'Grocery': '/(senior)/services/grocery',
+                                        'Pharmacy': '/(senior)/services/pharmacy'
+                                    };
+                                    const pathname = routes[service.title] || '/(senior)/service-detail';
                                     router.push({
-                                        pathname: '/(senior)/service-detail',
+                                        pathname: pathname as any,
                                         params: { title: service.title, icon: service.icon, color: service.color }
                                     } as any);
                                 }}
@@ -129,7 +188,6 @@ export default function ServicesList() {
 
             {/* Custom Floating Bottom Bar */}
             <Animated.View
-                entering={FadeInUp.delay(200).duration(600)}
                 className="absolute bottom-0 left-0 right-0 px-6 bg-white/10"
                 style={{ paddingBottom: Math.max(insets.bottom, 20) }}
             >
