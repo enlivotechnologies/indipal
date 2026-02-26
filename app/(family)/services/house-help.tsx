@@ -1,3 +1,4 @@
+import { useBookingStore } from '@/store/bookingStore';
 import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -7,7 +8,6 @@ import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Modal,
     Pressable,
@@ -28,7 +28,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type HouseHelpService = {
     id: string;
@@ -113,6 +113,27 @@ export default function HouseHelpScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
         setTimeout(() => {
+            // Requirement 1: Save to database (Store)
+            const gigData = {
+                title: selectedService.title,
+                description: selectedService.description,
+                dateTime: new Date().toLocaleDateString('en-GB') + ' ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+                duration: "3 Hours",
+                paymentAmount: selectedService.price,
+                price: selectedService.price,
+                location: { address: address || "HSR Layout, Sector 4, Bangalore", lat: 12.9141, lng: 77.6413 },
+                familyId: "FAM_PREMIUM_01",
+                userName: "Grandpa Ramesh", // Mock data for senior name
+                palId: "",
+                palName: "",
+                date: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+                day: new Date().toLocaleDateString('en-GB', { weekday: 'long' }),
+                time: "As per schedule",
+                requirements: selectedService.tasks
+            };
+
+            useBookingStore.getState().addGig(gigData);
+
             setOrderStatus('confirmed');
             setIsConfirmed(true);
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
@@ -428,4 +449,4 @@ export default function HouseHelpScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

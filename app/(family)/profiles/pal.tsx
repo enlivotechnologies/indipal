@@ -72,7 +72,7 @@ export default function PalProfileScreen() {
             b.palId === palData.id &&
             b.date === currentDay.date &&
             b.time === selectedTimeSlot &&
-            (b.status === 'Pending' || b.status === 'Accepted')
+            (b.status === 'open' || b.status === 'accepted' || b.status === 'in_progress')
         );
     }, [bookings, palData.id, currentDay.date, selectedTimeSlot]);
 
@@ -356,14 +356,14 @@ export default function PalProfileScreen() {
 
                 {/* Status Indicator for Current Selection */}
                 {activeBooking && (
-                    <View style={{ backgroundColor: activeBooking.status === 'Pending' ? '#FFFBEB' : '#ECFDF5', padding: 16, borderRadius: 20, marginTop: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: activeBooking.status === 'Pending' ? '#FEF3C7' : '#D1FAE5' }}>
-                        <Ionicons name={activeBooking.status === 'Pending' ? 'time' : 'checkmark-circle'} size={20} color={activeBooking.status === 'Pending' ? '#D97706' : '#059669'} />
+                    <View style={{ backgroundColor: activeBooking.status === 'open' ? '#FFFBEB' : '#ECFDF5', padding: 16, borderRadius: 20, marginTop: 24, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: activeBooking.status === 'open' ? '#FEF3C7' : '#D1FAE5' }}>
+                        <Ionicons name={activeBooking.status === 'open' ? 'time' : 'checkmark-circle'} size={20} color={activeBooking.status === 'open' ? '#D97706' : '#059669'} />
                         <View style={{ marginLeft: 12 }}>
-                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeBooking.status === 'Pending' ? '#D97706' : '#059669' }}>
+                            <Text style={{ fontSize: 12, fontWeight: 'bold', color: activeBooking.status === 'open' ? '#D97706' : '#059669' }}>
                                 Appointment {activeBooking.status}
                             </Text>
-                            <Text style={{ fontSize: 10, color: activeBooking.status === 'Pending' ? '#B45309' : '#065F46' }}>
-                                Requested for {activeBooking.date} at {activeBooking.time}
+                            <Text style={{ fontSize: 10, color: activeBooking.status === 'open' ? '#B45309' : '#065F46' }}>
+                                Scheduled for {activeBooking.date} at {activeBooking.time}
                             </Text>
                         </View>
                     </View>

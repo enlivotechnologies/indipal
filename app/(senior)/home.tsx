@@ -1,18 +1,18 @@
 import { useAuthStore } from '@/store/authStore';
 import { useErrandStore } from '@/store/errandStore';
-import { useGigStore } from '@/store/gigStore';
 import { useHealthStore } from '@/store/healthStore';
+import { useNotificationStore } from '@/store/notificationStore';
 import { useServiceStore } from '@/store/serviceStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
-import React from 'react';
-import { Dimensions, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { Easing, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 // Premium Palette for Seniors
 const BRAND_PURPLE = '#6E5BFF';
@@ -110,13 +110,17 @@ export default function SeniorHomeScreen() {
   const insets = useSafeAreaInsets();
 
   const user = useAuthStore((state) => state.user);
-  const { records: healthRecords, medications, addMedication, requestRefill, updateMedicationStatus, toggleMedicationTaken } = useHealthStore();
-  const { errands, notifications } = useErrandStore();
-  const { addGig } = useGigStore();
+  const { medications, toggleMedicationTaken } = useHealthStore();
+  const { fetchNotifications, unreadCount, notifications: storeNotifications } = useNotificationStore();
+  const { errands } = useErrandStore();
   const orders = useServiceStore((state) => state.orders);
 
+  useEffect(() => {
+    fetchNotifications('senior');
+  }, [fetchNotifications]);
+
   const activeErrand = errands.find(e => e.status === 'in-progress');
-  const unreadNotifications = notifications.filter(n => !n.read).length;
+  const unreadNotifications = unreadCount || storeNotifications.filter(n => !n.isRead).length;
 
   const activeMeds = medications.filter(m => m.status === 'active');
   const takenCount = activeMeds.filter(m => m.takenToday).length;
@@ -304,8 +308,8 @@ export default function SeniorHomeScreen() {
             <View className="ml-5 flex-1 pr-4">
               <Text className="text-indigo-400 text-[10px] font-black uppercase tracking-[3px] mb-1">Smart Pulse</Text>
               <Text className="text-gray-900 font-bold text-base leading-tight" numberOfLines={2}>
-                {notifications.length > 0
-                  ? notifications[0].message
+                {storeNotifications.length > 0
+                  ? storeNotifications[0].message
                   : "All systems normal. You are well cared for today."}
               </Text>
             </View>

@@ -3,7 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { Tabs, usePathname, useRouter } from "expo-router";
 import React from "react";
-import { Dimensions, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { Gesture, GestureDetector, GestureHandlerRootView } from "react-native-gesture-handler";
 import Animated, {
     useAnimatedStyle,
@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 
 export default function SeniorLayout() {
     const pathname = usePathname();
@@ -132,6 +132,10 @@ export default function SeniorLayout() {
                     <Tabs.Screen
                         name="member-detail"
                         options={{ title: "Member Profiles", href: null }}
+                    />
+                    <Tabs.Screen
+                        name="notification-detail"
+                        options={{ title: "Notification Detail", href: null }}
                     />
                 </Tabs>
 

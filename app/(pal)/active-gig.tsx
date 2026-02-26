@@ -1,125 +1,211 @@
+import { BottomTab } from "@/components/pal/BottomTab";
+import { GigChecklist } from '@/components/pal/GigChecklist';
+import { useBookingStore } from "@/store/bookingStore";
 import { useGigStore } from '@/store/gigStore';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
-import Animated, { FadeInDown } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter } from "expo-router";
+import React from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import Animated, { FadeInUp } from "react-native-reanimated";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+
 
 export default function PalActiveGigPage() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
-    const { gigs, updateGigStatus, toggleItem } = useGigStore();
+    const { bookings, updateGigStatus, completeGig } = useBookingStore();
+    const { gigs, updateGigStatus: updateErrandStatus } = useGigStore();
 
-    // Find a gig that is 'approved_and_assigned' or 'matched' or 'active'
-    const activeGig = gigs.find(g => ['approved_and_assigned', 'matched', 'active'].includes(g.status));
+    // Find the current active gig from either store
+    const activeBooking = bookings.find(b => ["accepted", "on_the_way", "on_site", "in_progress"].includes(b.status));
+    const activeErrand = gigs.find(g => ['approved_and_assigned', 'matched', 'active'].includes(g.status));
+
+    const activeGig = activeBooking || activeErrand;
+
+    const handleAction = async () => {
+        if (!activeGig) return;
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        if (activeBooking) {
+            if (activeGig.status === 'accepted') {
+                await updateGigStatus(activeGig.id, 'on_the_way');
+            } else if (activeGig.status === 'on_the_way') {
+                await updateGigStatus(activeGig.id, 'on_site');
+            } else if (activeGig.status === 'on_site') {
+                await updateGigStatus(activeGig.id, 'in_progress');
+            } else if (activeGig.status === 'in_progress') {
+                const res = await completeGig(activeGig.id);
+                if (res.success) {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                    router.replace('/(pal)/home');
+                }
+            }
+        } else if (activeErrand) {
+            const allChecked = activeErrand.items?.every(i => i.checked) ?? true;
+            if (allChecked) {
+                updateErrandStatus(activeErrand.id, 'completed');
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                router.replace('/(pal)/home');
+            }
+        }
+    };
+
+    const getButtonStyles = () => {
+        if (!activeGig) return { text: 'Unknown', bg: 'bg-gray-400', disabled: false };
+
+        if (activeBooking) {
+            switch (activeGig.status) {
+                case 'accepted': return { text: 'Start Travel', bg: 'bg-indigo-600', disabled: false };
+                case 'on_the_way': return { text: 'Mark Arrived', bg: 'bg-orange-500', disabled: false };
+                case 'on_site': return { text: 'Start Session', bg: 'bg-emerald-600', disabled: false };
+                case 'in_progress': return { text: `Complete Gig • ₹${activeGig.price}`, bg: 'bg-gray-900', disabled: false };
+                default: return { text: 'Action', bg: 'bg-gray-900', disabled: false };
+            }
+        } else {
+            const allChecked = activeErrand?.items?.every(i => i.checked) ?? true;
+            return {
+                text: allChecked ? 'Finish & Request Payment' : 'Complete Checklist First',
+                bg: allChecked ? 'bg-emerald-600' : 'bg-gray-300',
+                disabled: !allChecked
+            };
+        }
+    };
 
     if (!activeGig) {
         return (
-            <View style={{ flex: 1, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', padding: 40 }}>
-                <Ionicons name="documents-outline" size={80} color="#E5E7EB" />
-                <Text className="text-gray-400 font-bold text-center mt-4">No active gigs found. Check the dashboard for opportunities.</Text>
+            <View style={{ flex: 1, backgroundColor: 'white', justifyContent: 'center', alignItems: 'center', padding: 40 }}>
+                <View className="w-24 h-24 bg-gray-50 rounded-full items-center justify-center mb-6">
+                    <Ionicons name="briefcase-outline" size={40} color="#D1D5DB" />
+                </View>
+                <Text className="text-xl font-black text-gray-900 text-center">No Active Gig</Text>
+                <Text className="text-gray-400 text-center mt-2 leading-6">Accept a gig from the marketplace to start your daily session.</Text>
                 <TouchableOpacity
-                    onPress={() => router.back()}
-                    className="mt-8 bg-emerald-600 px-8 py-4 rounded-2xl"
+                    onPress={() => router.push('/(pal)/home')}
+                    className="mt-10 bg-emerald-500 px-8 py-4 rounded-2xl shadow-lg shadow-emerald-200"
                 >
-                    <Text className="text-white font-black uppercase tracking-widest">Go Back</Text>
+                    <Text className="text-white font-black uppercase tracking-widest text-xs">Browse Jobs</Text>
                 </TouchableOpacity>
             </View>
         );
     }
 
-    const allChecked = activeGig.items.every(i => i.checked);
+    const btn = getButtonStyles();
 
     return (
         <View style={{ flex: 1, backgroundColor: 'white' }}>
-            <ScrollView
-                contentContainerStyle={{
-                    paddingTop: Math.max(insets.top, 20),
-                    paddingBottom: insets.bottom + 100,
-                    paddingHorizontal: 24
-                }}
-            >
-                <TouchableOpacity
-                    onPress={() => router.back()}
-                    className="w-12 h-12 bg-gray-50 rounded-2xl items-center justify-center border border-gray-100 mb-8"
-                >
-                    <Ionicons name="arrow-back" size={24} color="#1F2937" />
-                </TouchableOpacity>
-
-                <View className="flex-row justify-between items-start mb-10">
-                    <View>
-                        <Text className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-1">Active Job</Text>
-                        <Text className="text-3xl font-black text-gray-900">{activeGig.category}</Text>
-                    </View>
-                    <View className="bg-orange-500 px-4 py-2 rounded-xl">
-                        <Text className="text-white text-[10px] font-black uppercase">Approved by Family</Text>
-                    </View>
+            <View style={[styles.header, { paddingTop: Math.max(insets.top, 16), paddingBottom: 16 }]} className="px-6 flex-row items-center justify-between border-b border-gray-50 bg-white">
+                <Text className="text-2xl font-black text-gray-900">Active Gig</Text>
+                <View className="flex-row items-center gap-x-2">
+                    <TouchableOpacity
+                        onPress={() => router.push({ pathname: '/(pal)/chat/[id]', params: { id: activeGig.palId || 'chat_1' } } as any)}
+                        className="w-10 h-10 bg-emerald-50 rounded-xl items-center justify-center border border-emerald-100"
+                    >
+                        <Ionicons name="chatbubble-ellipses-outline" size={20} color="#10B981" />
+                    </TouchableOpacity>
                 </View>
+            </View>
 
-                {/* Payment Guarantee Badge */}
-                <Animated.View entering={FadeInDown} className="bg-indigo-50 p-6 rounded-[32px] border border-indigo-100 flex-row items-center mb-10">
-                    <View className="w-12 h-12 bg-indigo-500 rounded-2xl items-center justify-center">
-                        <Ionicons name="shield-checkmark" size={24} color="white" />
+            <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingBottom: insets.bottom + 100 }}>
+                <Animated.View entering={FadeInUp.duration(600)} className="bg-gray-900 p-8 rounded-[40px] shadow-2xl relative overflow-hidden mb-10">
+                    <View className="flex-row items-center mb-8">
+                        <View className="w-16 h-16 bg-emerald-500/20 rounded-2xl items-center justify-center overflow-hidden">
+                            <Ionicons name="person" size={32} color="white" />
+                        </View>
+                        <View className="ml-4">
+                            <Text className="text-white font-black text-xl">{(activeBooking as any)?.userName || (activeErrand as any)?.seniorName}</Text>
+                            <Text className="text-emerald-400 text-[10px] font-black uppercase tracking-widest">{activeBooking ? (activeBooking as any).title : `${(activeErrand as any)?.category} Pickup`}</Text>
+                        </View>
                     </View>
-                    <View className="ml-5 flex-1">
-                        <Text className="text-indigo-900 font-black text-sm">Payment Guaranteed</Text>
-                        <Text className="text-indigo-500 font-bold text-[10px] uppercase">Enlivo Wallet Verification</Text>
+
+                    <View className="gap-y-6 mb-8">
+                        <View className="flex-row items-center">
+                            <View className="w-10 h-10 bg-white/10 rounded-xl items-center justify-center">
+                                <Ionicons name="location" size={20} color="white" />
+                            </View>
+                            <View className="ml-4 flex-1">
+                                <Text className="text-white/50 text-[10px] uppercase font-black">Location</Text>
+                                <Text className="text-white font-bold text-sm" numberOfLines={1}>{activeBooking ? (activeBooking as any).location.address : 'Senior Residence'}</Text>
+                            </View>
+                        </View>
+                        <View className="flex-row items-center">
+                            <View className="w-10 h-10 bg-white/10 rounded-xl items-center justify-center">
+                                <Ionicons name="time" size={20} color="white" />
+                            </View>
+                            <View className="ml-4">
+                                <Text className="text-white/50 text-[10px] uppercase font-black">Scheduled Time</Text>
+                                <Text className="text-white font-bold text-sm">{activeBooking ? (activeBooking as any).time : 'Active Now'}</Text>
+                            </View>
+                        </View>
+                    </View>
+
+                    <View className="flex-row items-center justify-between pt-4 border-t border-white/10">
+                        <View>
+                            <Text className="text-white/40 text-[10px] uppercase font-black">Session Status</Text>
+                            <Text className="text-emerald-400 font-black text-xs uppercase mt-1">● {activeGig.status.replace(/_/g, ' ')}</Text>
+                        </View>
+                        <Text className="text-white font-black text-lg">₹{activeBooking ? (activeBooking as any).price : ((activeErrand as any)?.budget || '250')}</Text>
                     </View>
                 </Animated.View>
 
-                <Text className="text-xs font-bold text-gray-400 uppercase tracking-[3px] mb-6 ml-1">Gig Checklist</Text>
+                {activeErrand && (activeErrand as any).items && (activeErrand as any).items.length > 0 && (
+                    <>
+                        <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Gig Checklist</Text>
+                        <GigChecklist gigId={activeErrand.id} items={(activeErrand as any).items} />
+                    </>
+                )}
 
-                <View className="bg-gray-50 rounded-[40px] p-8 border border-gray-100">
-                    {activeGig.items.map((item, idx) => (
-                        <TouchableOpacity
-                            key={item.id}
-                            onPress={() => {
-                                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                                toggleItem(activeGig.id, item.id);
-                            }}
-                            className="flex-row items-center mb-6 last:mb-0"
-                        >
-                            <View className={`w-8 h-8 rounded-full border-2 items-center justify-center ${item.checked ? 'bg-emerald-500 border-emerald-500' : 'bg-white border-gray-200'
-                                }`}>
-                                {item.checked && <Ionicons name="checkmark" size={16} color="white" />}
-                            </View>
-                            <View className="ml-5 flex-1">
-                                <Text className={`text-lg font-bold ${item.checked ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.name}</Text>
-                                <Text className="text-xs text-gray-400 font-bold uppercase">{item.quantity}</Text>
-                            </View>
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Session Protocol</Text>
 
-                <View className="mt-10 bg-orange-50 p-6 rounded-[32px] border border-orange-100 flex-row items-center">
-                    <Ionicons name="information-circle" size={24} color="#F59E0B" />
-                    <Text className="ml-4 text-orange-900 text-xs font-bold leading-5 flex-1">
-                        Ensure you collect all items. Total budget approved is ₹{activeGig.budget || 'N/A'}. Submit bills on completion.
-                    </Text>
-                </View>
+                {activeBooking ? [
+                    { id: 1, task: 'Acceptance & Assignment', done: ['accepted', 'on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 2, task: 'Travel Started', done: ['on_the_way', 'on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 3, task: 'Arrived at Site', done: ['on_site', 'in_progress'].includes(activeGig.status) },
+                    { id: 4, task: 'Service In Progress', done: ['in_progress'].includes(activeGig.status) },
+                    { id: 5, task: 'Payment & Completion', done: false },
+                ].map((item, idx) => (
+                    <View
+                        key={item.id}
+                        className={`flex-row items-center p-6 rounded-[24px] mb-4 border ${item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}
+                    >
+                        <View className={`w-6 h-6 rounded-lg items-center justify-center ${item.done ? 'bg-emerald-500' : 'bg-white border border-gray-200'}`}>
+                            {item.done && <Ionicons name="checkmark" size={14} color="white" />}
+                        </View>
+                        <Text className={`ml-4 font-bold text-sm ${item.done ? 'text-emerald-900' : 'text-gray-600'}`}>{item.task}</Text>
+                    </View>
+                )) : [
+                    { id: 1, task: 'Gig Claimed', done: true },
+                    { id: 2, task: 'Checklist Completed', done: activeErrand?.items?.every(i => i.checked) ?? false },
+                    { id: 3, task: 'Delivery & Payout', done: false },
+                ].map((item, idx) => (
+                    <View
+                        key={item.id}
+                        className={`flex-row items-center p-6 rounded-[24px] mb-4 border ${item.done ? 'bg-emerald-50 border-emerald-100' : 'bg-gray-50 border-gray-100'}`}
+                    >
+                        <View className={`w-6 h-6 rounded-lg items-center justify-center ${item.done ? 'bg-emerald-500' : 'bg-white border border-gray-200'}`}>
+                            {item.done && <Ionicons name="checkmark" size={14} color="white" />}
+                        </View>
+                        <Text className={`ml-4 font-bold text-sm ${item.done ? 'text-emerald-900' : 'text-gray-600'}`}>{item.task}</Text>
+                    </View>
+                ))}
+
+                <TouchableOpacity
+                    onPress={handleAction}
+                    disabled={btn.disabled}
+                    className={`mt-10 ${btn.bg} py-6 rounded-[24px] items-center shadow-2xl ${btn.disabled ? 'opacity-50' : ''}`}
+                >
+                    <Text className="text-white font-black uppercase tracking-widest text-sm">{btn.text}</Text>
+                </TouchableOpacity>
             </ScrollView>
 
-            <View
-                className="absolute bottom-0 left-0 right-0 p-6 bg-white/80"
-                style={{ paddingBottom: Math.max(insets.bottom, 20) }}
-            >
-                <TouchableOpacity
-                    onPress={() => {
-                        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                        updateGigStatus(activeGig.id, 'completed');
-                        router.replace('/(pal)/home');
-                    }}
-                    className={`h-20 rounded-[28px] items-center justify-center shadow-xl ${allChecked ? 'bg-emerald-600 shadow-emerald-200' : 'bg-gray-200 shadow-none'
-                        }`}
-                    disabled={!allChecked}
-                >
-                    <Text className="text-white font-black text-xl uppercase tracking-widest">
-                        Finish & Request Payment
-                    </Text>
-                </TouchableOpacity>
-            </View>
+            <BottomTab activeTab="Gig" />
         </View>
     );
 }
+
+const styles = StyleSheet.create({
+    header: {
+        backgroundColor: 'white',
+    }
+});
