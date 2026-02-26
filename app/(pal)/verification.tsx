@@ -8,7 +8,7 @@ import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Text, T
 import Animated, { FadeInUp } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const BRAND_GREEN = '#10B981';
+
 
 export default function VerificationScreen() {
     const router = useRouter();
@@ -48,7 +48,7 @@ export default function VerificationScreen() {
                 setShowPreview(false);
                 Alert.alert("Success", "Document re-uploaded and pending verification.");
             }
-        } catch (error) {
+        } catch {
             Alert.alert("Error", "Failed to upload document. Please try again.");
         } finally {
             setIsReuploading(false);
@@ -121,7 +121,7 @@ export default function VerificationScreen() {
                                 {doc.verificationStatus === 'Rejected' && doc.adminRemarks && (
                                     <View className="bg-red-50 p-5 rounded-[24px] mb-6 mx-2 border border-red-100">
                                         <Text className="text-red-600 text-[10px] font-black uppercase mb-1">Rejection Reason</Text>
-                                        <Text className="text-red-700/80 text-[11px] font-bold leading-5 italic">"{doc.adminRemarks}"</Text>
+                                        <Text className="text-red-700/80 text-[11px] font-bold leading-5 italic">&quot;{doc.adminRemarks}&quot;</Text>
 
                                         <TouchableOpacity
                                             onPress={() => handleReupload(doc.documentType)}

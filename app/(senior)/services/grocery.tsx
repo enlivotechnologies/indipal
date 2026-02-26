@@ -5,7 +5,6 @@ import { useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
-    Dimensions,
     Image,
     Modal,
     Pressable,
@@ -25,7 +24,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type GroceryItem = {
     id: string;
@@ -83,6 +82,7 @@ export default function GroceryOrderScreen() {
     const [viewItem, setViewItem] = useState<GroceryItem | null>(null);
     const [showCart, setShowCart] = useState(false);
     const [orderStatus, setOrderStatus] = useState<'idle' | 'paying' | 'confirmed'>('idle');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [isConfirmed, setIsConfirmed] = useState(false);
     const navigation = useNavigation();
 
@@ -108,6 +108,10 @@ export default function GroceryOrderScreen() {
             return next;
         });
     };
+
+    const filteredItems = GROCERY_ITEMS.filter(item =>
+        selectedCategory === 'All' || item.category === selectedCategory
+    );
 
     const cartTotal = GROCERY_ITEMS.reduce((sum, item) => sum + (item.price * (cart[item.id] || 0)), 0);
 
@@ -157,11 +161,11 @@ export default function GroceryOrderScreen() {
                             setCart({});
                             setIsConfirmed(false);
                             setOrderStatus('idle');
-                            router.replace('/(family)/care' as any);
+                            router.replace('/(senior)/services' as any);
                         }}
                         className="bg-gray-900 px-12 py-5 rounded-[24px] shadow-xl shadow-black/20 w-full"
                     >
-                        <Text className="text-white font-black uppercase tracking-widest text-center">Back to Care Hub</Text>
+                        <Text className="text-white font-black uppercase tracking-widest text-center">Back to Services</Text>
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -176,7 +180,7 @@ export default function GroceryOrderScreen() {
                 style={{ paddingTop: Math.max(insets.top, 20) }}
             >
                 <TouchableOpacity
-                    onPress={() => router.replace('/(family)/care' as any)}
+                    onPress={() => router.replace('/(senior)/services' as any)}
                     className="w-12 h-12 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100"
                 >
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
@@ -229,10 +233,29 @@ export default function GroceryOrderScreen() {
                 </Animated.View>
 
                 {/* Categories */}
+                <View className="mb-8">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6" contentContainerStyle={{ paddingRight: 40 }}>
+                        {['All', 'Essentials', 'Nutrition', 'Household'].map((cat) => (
+                            <TouchableOpacity
+                                key={cat}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    setSelectedCategory(cat);
+                                }}
+                                className={`mr-3 px-6 py-3 rounded-2xl border ${selectedCategory === cat ? 'bg-cyan-600 border-cyan-600 shadow-md shadow-cyan-100' : 'bg-white border-gray-100'}`}
+                            >
+                                <Text className={`text-[10px] font-black uppercase tracking-widest ${selectedCategory === cat ? 'text-white' : 'text-gray-400'}`}>
+                                    {cat}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
+
                 <View className="px-6 mb-10">
                     <Text className="text-[11px] font-black text-gray-400 uppercase tracking-[3px] mb-6 ml-1">Organic Selection</Text>
                     <View className="flex-row flex-wrap justify-between">
-                        {GROCERY_ITEMS.map((item, idx) => (
+                        {filteredItems.map((item, idx) => (
                             <Animated.View
                                 key={item.id}
                                 entering={FadeInUp.delay(200 + idx * 100).duration(600).easing(Easing.inOut(Easing.ease))}
@@ -475,4 +498,4 @@ export default function GroceryOrderScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

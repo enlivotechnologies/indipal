@@ -4,15 +4,11 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
 
-// Premium Palette for Seniors
-const BRAND_PURPLE = '#6E5BFF';
-const DARK_PURPLE = '#4C3BFF';
 
 export default function SeniorTasksScreen() {
     const router = useRouter();
@@ -61,7 +57,7 @@ export default function SeniorTasksScreen() {
                         <Ionicons name="chevron-back" size={24} color="#1F2937" />
                     </TouchableOpacity>
 
-                    <Text className="text-xl font-black text-gray-900">Today's Tasks</Text>
+                    <Text className="text-xl font-black text-gray-900">Today&apos;s Tasks</Text>
 
                     <View className="w-12" />
                 </View>
@@ -199,4 +195,4 @@ export default function SeniorTasksScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

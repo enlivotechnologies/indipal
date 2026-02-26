@@ -57,7 +57,7 @@ export default function RegisterPal() {
         if (!uri) return;
 
         setIsUploading(type);
-        const url = await uploadFile(uri);
+        const url = await uploadFile(uri.uri);
         setIsUploading(null);
 
         if (type === 'profile_photo') {
@@ -105,7 +105,7 @@ export default function RegisterPal() {
                         {step === 1 && (
                             <Animated.View entering={FadeInRight} exiting={FadeOutLeft}>
                                 <Text className="text-3xl font-black text-gray-900 mb-2">Basic Info</Text>
-                                <Text className="text-gray-500 mb-8 font-medium">Let's get the essentials out of the way.</Text>
+                                <Text className="text-gray-500 mb-8 font-medium">Let&apos;s get the essentials out of the way.</Text>
 
                                 <View className="items-center mb-10">
                                     <TouchableOpacity

@@ -1,3 +1,4 @@
+import { useAuthStore } from '@/store/authStore';
 import { useErrandStore } from '@/store/errandStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -7,12 +8,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Linking,
     Modal,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -28,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width, height } = Dimensions.get('window');
+
 
 type PharmacyItem = {
     id: string;
@@ -136,9 +135,13 @@ export default function PharmacyOrderingScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
+    // Auth State - Primary Senior Logic
+    const user = useAuthStore((state) => state.user);
+    const parentAddress = user?.parentsDetails?.[0]?.address || 'Sector 4, HSR Layout, Bengaluru';
+
     const [search, setSearch] = useState('');
     const [cart, setCart] = useState<Record<string, number>>({});
-    const [address, setAddress] = useState('');
+    const [address, setAddress] = useState(parentAddress);
     const [isConfirmed, setIsConfirmed] = useState(false);
     const [selectedItem, setSelectedItem] = useState<PharmacyItem | null>(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -714,4 +717,4 @@ export default function PharmacyOrderingScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

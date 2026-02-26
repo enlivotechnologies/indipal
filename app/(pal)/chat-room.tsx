@@ -1,12 +1,12 @@
 import { captureImageWithCamera, pickDocument, pickImageFromGallery, uploadFile } from "@/lib/uploadService";
 import { useAuthStore } from "@/store/authStore";
-import { useChatStore } from "@/store/chatStore";
+import { Message, useChatStore } from "@/store/chatStore";
 import { Ionicons } from "@expo/vector-icons";
 import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
@@ -15,7 +15,6 @@ import {
     Linking,
     Platform,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -31,7 +30,7 @@ export default function ChatRoomScreen() {
     const insets = useSafeAreaInsets();
     const { id } = useLocalSearchParams();
     const { user } = useAuthStore();
-    const { conversations, messages, sendMessage, markAsRead, toggleCall, blockedUserIds } = useChatStore();
+    const { conversations, messages, sendMessage, markAsRead, blockedUserIds } = useChatStore();
     const [inputText, setInputText] = useState('');
     const [showAttachments, setShowAttachments] = useState(false);
     const [isSending, setIsSending] = useState(false);
@@ -44,7 +43,7 @@ export default function ChatRoomScreen() {
     const recordTimer = useRef<any>(null);
 
     const conversation = conversations.find(c => c.id === id);
-    const chatMessages = messages[id as string] || [];
+    const chatMessages = useMemo(() => messages[id as string] || [], [messages, id]);
     const otherParticipant = conversation?.participants.find(p => p.role !== 'pal');
     const isBlocked = blockedUserIds.includes(otherParticipant?.id || '');
 
@@ -55,7 +54,7 @@ export default function ChatRoomScreen() {
         return () => {
             if (id) markAsRead(id as string);
         };
-    }, [id]);
+    }, [id, markAsRead]);
 
     useEffect(() => {
         setTimeout(() => {
@@ -293,7 +292,7 @@ export default function ChatRoomScreen() {
                     contentContainerStyle={{ paddingVertical: 24 }}
                     showsVerticalScrollIndicator={false}
                 >
-                    {chatMessages.map((msg, idx) => {
+                    {chatMessages.map((msg: Message, idx: number) => {
                         const isMe = msg.senderId === (user?.phone || 'PAL_001');
                         return (
                             <View key={msg.id} className={`mb-6 flex-row ${isMe ? 'justify-end' : 'justify-start'}`}>
@@ -520,4 +519,4 @@ function AudioPlayer({ uri, duration, isMe }: { uri: string; duration: number; i
     );
 }
 
-const styles = StyleSheet.create({});
+

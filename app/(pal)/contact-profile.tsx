@@ -23,7 +23,7 @@ export default function ContactProfileScreen() {
 
     const conversation = conversations.find(c => c.id === id);
     const participant = conversation?.participants.find(p => p.id === participantId);
-    const chatMessages = messages[id as string] || [];
+    const chatMessages = useMemo(() => messages[id as string] || [], [messages, id]);
 
     const mediaMessages = useMemo(() => chatMessages.filter(m => m.type === 'image'), [chatMessages]);
     const fileMessages = useMemo(() => chatMessages.filter(m => m.type === 'file'), [chatMessages]);
@@ -247,7 +247,7 @@ export default function ContactProfileScreen() {
                     >
                         <View className="w-12 h-1.5 bg-gray-100 rounded-full self-center mb-8" />
                         <Text className="text-2xl font-black text-gray-900 mb-2">Report Profile</Text>
-                        <Text className="text-gray-500 font-medium mb-8">Tell us why you're reporting {participant.name}. Your report is anonymous.</Text>
+                        <Text className="text-gray-500 font-medium mb-8">Tell us why you&apos;re reporting {participant.name}. Your report is anonymous.</Text>
 
                         <View className="gap-y-3">
                             {['Spam or Harassment', 'Inappropriate Content', 'Suspicious Activity', 'Other'].map((reason) => (

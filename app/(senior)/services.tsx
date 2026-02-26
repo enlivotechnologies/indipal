@@ -3,12 +3,12 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { usePathname, useRouter } from 'expo-router';
 import React from "react";
-import { Dimensions, Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, Linking, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import useServiceStore from "../../store/serviceStore";
+import { useServiceStore } from "../../store/serviceStore";
 
-const { width } = Dimensions.get("window");
+
 const BRAND_PURPLE = '#6E5BFF';
 
 const SERVICES = [
@@ -141,8 +141,15 @@ export default function ServicesList() {
                                 activeOpacity={0.9}
                                 onPress={() => {
                                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                                    const routes: Record<string, string> = {
+                                        'Home Nurse': '/(senior)/services/nurse',
+                                        'House Help': '/(senior)/services/house-help',
+                                        'Grocery': '/(senior)/services/grocery',
+                                        'Pharmacy': '/(senior)/services/pharmacy'
+                                    };
+                                    const pathname = routes[service.title] || '/(senior)/service-detail';
                                     router.push({
-                                        pathname: '/(senior)/service-detail',
+                                        pathname: pathname as any,
                                         params: { title: service.title, icon: service.icon, color: service.color }
                                     } as any);
                                 }}

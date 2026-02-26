@@ -91,7 +91,7 @@ export default function PalsProfileScreen() {
             const url = await uploadFile(asset.uri);
             updateUser({ profileImage: url });
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        } catch (error) {
+        } catch {
             Alert.alert("Error", "Failed to upload photo");
         } finally {
             setIsUploadingPhoto(false);

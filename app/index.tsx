@@ -1,12 +1,11 @@
 import { useAuthStore } from '@/store/authStore';
-import { SplashScreen, useRootNavigationState, useRouter, useSegments } from 'expo-router';
+import { SplashScreen, useRootNavigationState, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootIndex() {
     const { user, isLoaded, hasCompletedProfile } = useAuthStore();
     const router = useRouter();
-    const segments = useSegments();
     const navigationState = useRootNavigationState();
     const [isReady, setIsReady] = useState(false);
 
@@ -22,7 +21,7 @@ export default function RootIndex() {
         const performRedirect = async () => {
             try {
                 await SplashScreen.hideAsync();
-            } catch (e) {
+            } catch {
                 // Ignore splash screen errors
             }
 
@@ -51,7 +50,7 @@ export default function RootIndex() {
         // Delay to ensure the component is fully settled and navigation is stable
         const timeout = setTimeout(performRedirect, 0);
         return () => clearTimeout(timeout);
-    }, [user, isLoaded, isReady, hasCompletedProfile, navigationState?.key]);
+    }, [user, isLoaded, isReady, hasCompletedProfile, navigationState?.key, router]);
 
     return (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' }}>

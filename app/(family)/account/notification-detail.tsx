@@ -119,4 +119,4 @@ export default function FamilyNotificationDetailScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

@@ -5,11 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from "react";
-import { Alert, Dimensions, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp, ZoomIn, ZoomOut } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+
 const BRAND_PURPLE = '#6E5BFF';
 
 export default function MedicationsList() {
@@ -32,7 +32,7 @@ export default function MedicationsList() {
     // Form State
     const [medName, setMedName] = useState('');
     const [medDosage, setMedDosage] = useState('');
-    const [medFreq, setMedFreq] = useState('Daily');
+    const [medFreq] = useState('Daily');
     const [prescriptionPhoto, setPrescriptionPhoto] = useState<string | null>(null);
 
     const handleAddMedicine = () => {
@@ -140,7 +140,7 @@ export default function MedicationsList() {
                 </Animated.View>
 
                 {/* Daily Schedule List */}
-                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Today's Schedule</Text>
+                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-6 ml-1">Today&apos;s Schedule</Text>
 
                 <View className="gap-y-4">
                     {activeMeds.map((med, idx) => (

@@ -6,12 +6,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Linking,
     Modal,
     ScrollView,
-    StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
@@ -27,7 +25,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width, height } = Dimensions.get('window');
+
 
 type PharmacyItem = {
     id: string;
@@ -144,6 +142,7 @@ export default function PharmacyOrderingScreen() {
     const [prescriptionUri, setPrescriptionUri] = useState<string | null>(null);
     const [orderStatus, setOrderStatus] = useState<'idle' | 'paying' | 'confirmed'>('idle');
     const [selectedPayment, setSelectedPayment] = useState<'wallet' | 'card'>('wallet');
+    const [selectedCategory, setSelectedCategory] = useState('All');
     const [showCart, setShowCart] = useState(false);
     const navigation = useNavigation();
 
@@ -165,11 +164,18 @@ export default function PharmacyOrderingScreen() {
     };
 
     const filteredItems = useMemo(() => {
-        return PHARMACY_ITEMS.filter(item =>
-            item.title.toLowerCase().includes(search.toLowerCase()) ||
-            item.category.toLowerCase().includes(search.toLowerCase())
-        );
-    }, [search]);
+        let items = PHARMACY_ITEMS;
+        if (selectedCategory !== 'All') {
+            items = items.filter(item => item.category === selectedCategory);
+        }
+        if (search) {
+            items = items.filter(item =>
+                item.title.toLowerCase().includes(search.toLowerCase()) ||
+                item.category.toLowerCase().includes(search.toLowerCase())
+            );
+        }
+        return items;
+    }, [search, selectedCategory]);
 
     const cartTotal = useMemo(() => {
         return PHARMACY_ITEMS.reduce((sum, item) => {
@@ -264,11 +270,11 @@ export default function PharmacyOrderingScreen() {
                         onPress={() => {
                             setIsConfirmed(false);
                             setOrderStatus('idle');
-                            router.replace('/(family)/care' as any);
+                            router.replace('/(senior)/services' as any);
                         }}
                         className="bg-gray-900 px-12 py-5 rounded-[24px] shadow-xl shadow-black/20 w-full"
                     >
-                        <Text className="text-white font-black uppercase tracking-widest text-center">Back to Care Hub</Text>
+                        <Text className="text-white font-black uppercase tracking-widest text-center">Back to Services</Text>
                     </TouchableOpacity>
                 </Animated.View>
             </View>
@@ -283,7 +289,7 @@ export default function PharmacyOrderingScreen() {
                 style={{ paddingTop: Math.max(insets.top, 20) }}
             >
                 <TouchableOpacity
-                    onPress={() => router.replace('/(family)/care' as any)}
+                    onPress={() => router.replace('/(senior)/services' as any)}
                     className="w-12 h-12 items-center justify-center bg-gray-50 rounded-2xl border border-gray-100"
                 >
                     <Ionicons name="chevron-back" size={24} color="#1F2937" />
@@ -319,7 +325,7 @@ export default function PharmacyOrderingScreen() {
                 className="flex-1"
             >
                 {/* Search Bar - PROMINENT */}
-                <Animated.View entering={FadeInUp.delay(100).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mt-8 mb-4">
+                <Animated.View entering={FadeInUp.delay(100).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mt-8 mb-6">
                     <View className="bg-gray-100 flex-row items-center px-6 py-5 rounded-[32px] border border-gray-100 shadow-sm shadow-black/5">
                         <Ionicons name="search" size={22} color="#9CA3AF" />
                         <TextInput
@@ -331,6 +337,26 @@ export default function PharmacyOrderingScreen() {
                         />
                     </View>
                 </Animated.View>
+
+                {/* Category Chips */}
+                <View className="mb-8">
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6" contentContainerStyle={{ paddingRight: 40 }}>
+                        {['All', 'OTC', 'Supplements', 'Hygiene', 'Devices'].map((cat) => (
+                            <TouchableOpacity
+                                key={cat}
+                                onPress={() => {
+                                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                                    setSelectedCategory(cat);
+                                }}
+                                className={`mr-3 px-6 py-3 rounded-2xl border ${selectedCategory === cat ? 'bg-indigo-600 border-indigo-600' : 'bg-white border-gray-100'}`}
+                            >
+                                <Text className={`text-[10px] font-black uppercase tracking-widest ${selectedCategory === cat ? 'text-white' : 'text-gray-400'}`}>
+                                    {cat}
+                                </Text>
+                            </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                </View>
 
                 {/* Prescription Upload Card - EXTREMELY INTERACTIVE */}
                 <Animated.View entering={FadeInUp.delay(150).duration(600).easing(Easing.inOut(Easing.ease))} className="px-6 mb-10">
@@ -699,4 +725,4 @@ export default function PharmacyOrderingScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

@@ -5,7 +5,6 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
     ActivityIndicator,
-    Dimensions,
     Image,
     StatusBar,
     StyleSheet,
@@ -29,13 +28,7 @@ const FD_MODE = { fast: 1 };
 const FD_LANDMARKS = { none: 0 };
 const FD_CLASSIFICATIONS = { none: 0 };
 
-let FaceDetector: any = null;
-try {
-    // We only try to load it if we are not in a environment where it's known to fail
-    // but since we don't know, we'll just be very careful.
-} catch (e) { }
 
-const { width, height } = Dimensions.get('window');
 
 export default function CallScreen() {
     const router = useRouter();
@@ -46,7 +39,7 @@ export default function CallScreen() {
     const [duration, setDuration] = useState(0);
     const [isMuted, setIsMuted] = useState(false);
     const [isCameraOff, setIsCameraOff] = useState(false);
-    const [permission, requestPermission] = useCameraPermissions();
+    const [, requestPermission] = useCameraPermissions();
     const [faceDetected, setFaceDetected] = useState(true);
     const [hasDetectedOnce, setHasDetectedOnce] = useState(false);
     const lastFaceDetectionTime = useRef(Date.now());
@@ -140,7 +133,7 @@ export default function CallScreen() {
             clearTimeout(acTimeout);
             clearTimeout(naTimeout);
         };
-    }, []);
+    }, [type, pulseValue, requestPermission]);
 
     useEffect(() => {
         let timer: any;
@@ -339,4 +332,4 @@ function CallControl({ icon, label, active, onPress }: any) {
     );
 }
 
-const styles = StyleSheet.create({});
+

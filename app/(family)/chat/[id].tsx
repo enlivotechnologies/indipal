@@ -8,11 +8,10 @@ import {
   KeyboardAvoidingView,
   Linking,
   Platform,
-  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import Animated, { FadeInDown, FadeOutDown } from "react-native-reanimated";
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -292,4 +291,4 @@ function AttachmentItem({ icon, label, color, onPress }: { icon: any; label: str
   );
 }
 
-const styles = StyleSheet.create({});
+

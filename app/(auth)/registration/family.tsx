@@ -76,8 +76,15 @@ export default function RegisterFamily() {
                 >
                     <View className="flex-row items-center mb-6">
                         <TouchableOpacity onPress={() => {
-                            if (step > 1) { prevStep(); }
-                            else { router.canGoBack() ? router.back() : router.replace('/(auth)/otp-verify' as any); }
+                            if (step > 1) {
+                                prevStep();
+                            } else {
+                                if (router.canGoBack()) {
+                                    router.back();
+                                } else {
+                                    router.replace('/(auth)/otp-verify' as any);
+                                }
+                            }
                         }}>
                             <Ionicons name="arrow-back" size={24} color="#1F2937" />
                         </TouchableOpacity>
@@ -150,7 +157,7 @@ export default function RegisterFamily() {
                                 {formData.parentsDetails.map((parent, idx) => (
                                     <View key={idx} className="bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm mb-6">
                                         <Text className="text-lg font-bold text-gray-800 mb-6">Parent {idx + 1}</Text>
-                                        <InputField label="Full Name" placeholder="Elder's name" value={parent.name} onChangeText={(t) => updateParentDetail(idx, 'name', t)} />
+                                        <InputField label="Full Name" placeholder="Elder&apos;s name" value={parent.name} onChangeText={(t) => updateParentDetail(idx, 'name', t)} />
 
                                         <InputField label="Parent's Mobile (Connection Key)" placeholder="+91 XXXXX XXXXX" keyboardType="numeric" value={parent.phone} onChangeText={(t) => updateParentDetail(idx, 'phone', t)} />
                                         <Text className="text-[10px] text-gray-400 -mt-4 mb-4 italic px-1">* Must match what they use to log in.</Text>
@@ -224,7 +231,7 @@ export default function RegisterFamily() {
                     </ScrollView>
                 </LinearGradient>
             </KeyboardAvoidingView>
-        </View>
+        </View >
     );
 }
 

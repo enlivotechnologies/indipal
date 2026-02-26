@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -66,7 +66,7 @@ export default function BookingScreen() {
                     </View>
                     <Text className="text-3xl font-black text-gray-900 text-center mb-4">Booking Requested!</Text>
                     <Text className="text-gray-500 text-center text-lg font-medium leading-7 mb-12">
-                        Your request has been sent to your family for approval. You'll be notified once a Pal is assigned.
+                        Your request has been sent to your family for approval. You&apos;ll be notified once a Pal is assigned.
                     </Text>
                     <TouchableOpacity
                         onPress={() => {
@@ -234,4 +234,4 @@ export default function BookingScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     Modal,
     Pressable,
@@ -28,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 type NurseService = {
     id: string;
@@ -648,4 +647,4 @@ export default function NurseBookingScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+

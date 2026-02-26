@@ -8,7 +8,6 @@ import { useVideoPlayer, VideoView } from 'expo-video';
 import React, { useMemo, useState } from "react";
 import {
     Alert,
-    Dimensions,
     Linking,
     Modal,
     Platform,
@@ -21,7 +20,7 @@ import {
 import Animated, { FadeInRight, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+
 const BRAND_PURPLE = '#6E5BFF';
 
 export default function SeniorVideoScreen() {
@@ -33,14 +32,13 @@ export default function SeniorVideoScreen() {
     const { user } = useAuthStore();
     const {
         videos,
-        categories,
         toggleSaveVideo,
         addToHistory
     } = useWellnessStore();
 
     const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
     const [playingVideo, setPlayingVideo] = useState<WellnessVideo | null>(null);
-    const [sortBy, setSortBy] = useState<'Health' | 'Popular' | 'Newest'>('Health');
+    const [sortBy] = useState<'Health' | 'Popular' | 'Newest'>('Health');
 
     const safePathname = pathname || '';
     const CATEGORIES = ['ALL', 'SAVED', 'YOGA', 'DIET', 'EXERCISE'];

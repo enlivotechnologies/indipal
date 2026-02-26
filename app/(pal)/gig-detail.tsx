@@ -42,7 +42,7 @@ export default function GigDetailScreen() {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
                 Alert.alert('Notice', result.message);
             }
-        } catch (error) {
+        } catch {
             Alert.alert('Error', 'Something went wrong. Please try again.');
         }
     };

@@ -21,7 +21,7 @@ export default function NotificationsScreen() {
             markAllAsRead('pal');
         };
         initNotifications();
-    }, []);
+    }, [fetchNotifications, markAllAsRead]);
 
     const handleNotificationClick = async (notif: Notification) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -134,7 +134,7 @@ export default function NotificationsScreen() {
                                 <Ionicons name="notifications-off-outline" size={40} color="#D1D5DB" />
                             </View>
                             <Text className="text-xl font-black text-gray-900">All caught up!</Text>
-                            <Text className="text-gray-400 font-bold mt-2 text-center px-10">No new notifications. We'll let you know when something happens.</Text>
+                            <Text className="text-gray-400 font-bold mt-2 text-center px-10">No new notifications. We&apos;ll let you know when something happens.</Text>
                         </View>
                     }
                 />

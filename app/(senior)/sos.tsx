@@ -2,12 +2,12 @@ import { useErrandStore } from "@/store/errandStore";
 import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
-import React, { useEffect, useState } from "react";
-import { Alert, Dimensions, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useEffect, useState } from "react";
+import { Alert, Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+
 const BRAND_PURPLE = '#6E5BFF';
 
 export default function SOSScreen() {
@@ -24,12 +24,12 @@ export default function SOSScreen() {
     phone: '+91 98765 43210'
   };
 
-  const handleCallMember = () => {
+  const handleCallMember = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     Linking.openURL(`tel:${primaryFamilyMember.phone}`);
-  };
+  }, [primaryFamilyMember.phone]);
 
-  const handleSOS = () => {
+  const handleSOS = useCallback(() => {
     if (sosTriggered) return;
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     setIsActivating(true);
@@ -50,13 +50,13 @@ export default function SOSScreen() {
         [{ text: "OK" }]
       );
     }, 1000); // Small delay for visual feedback of the "HOLD" state
-  };
+  }, [sosTriggered, triggerSOS, handleCallMember]);
 
   useEffect(() => {
     if (auto === 'true' && !sosTriggered) {
       handleSOS();
     }
-  }, [auto]);
+  }, [auto, handleSOS, sosTriggered]);
 
   const activeTab = pathname.includes('home') ? 'Home' :
     pathname.includes('services') ? 'Services' :

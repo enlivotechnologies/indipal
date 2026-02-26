@@ -3,11 +3,11 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Haptics from 'expo-haptics';
 import { usePathname, useRouter } from 'expo-router';
 import React, { useState } from "react";
-import { Dimensions, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const { width } = Dimensions.get("window");
+
 const BRAND_PURPLE = '#6E5BFF';
 
 const MOODS = [

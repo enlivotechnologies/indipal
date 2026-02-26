@@ -689,7 +689,7 @@ export default function FamilyProfileScreen() {
             <View className="flex-row justify-between items-center mb-8">
               <View>
                 <Text className="text-2xl font-black text-gray-900">Support Center</Text>
-                <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">We're here to help you</Text>
+                <Text className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">We&apos;re here to help you</Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowSupportModal(false)}

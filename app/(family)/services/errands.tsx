@@ -4,7 +4,7 @@ import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Dimensions, Image, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, Linking, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Animated, {
     FadeIn,
     FadeInDown,
@@ -12,7 +12,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 const PulseCircle = () => {
     return <View style={styles.pulse} />;
@@ -79,7 +79,7 @@ export default function ErrandsScreen() {
 
                     <View className="items-center">
                         <Text className="text-sm font-black text-gray-400 uppercase tracking-widest mb-1">Control Tower</Text>
-                        <Text className="text-xl font-black text-gray-900">Today's Errands</Text>
+                        <Text className="text-xl font-black text-gray-900">Today&apos;s Errands</Text>
                     </View>
 
                     <View className="w-12" />

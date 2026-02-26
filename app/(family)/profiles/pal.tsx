@@ -5,10 +5,10 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
+
 
 // Precise February 2026 data
 const AVAILABILITY_DATA = [
@@ -119,7 +119,7 @@ export default function PalProfileScreen() {
             if (ampm === 'AM' && hh === 12) hh = 0;
             const targetDate = new Date(2026, 1, dayNum, hh, mm);
             return targetDate < systemNow;
-        } catch (err) {
+        } catch {
             return false;
         }
     };
@@ -404,4 +404,4 @@ export default function PalProfileScreen() {
     );
 }
 
-const styles = StyleSheet.create({});
+
