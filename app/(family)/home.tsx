@@ -192,7 +192,7 @@ export default function FamilyHomeScreen() {
   const services = [
     {
       id: "1",
-      title: "House Nurse",
+      title: "Home Nurse",
       subtitle: "Professional Care",
       icon: "person-add",
       color: "#F59E0B",
@@ -218,7 +218,7 @@ export default function FamilyHomeScreen() {
       color: "#F97316",
       image:
         "https://images.unsplash.com/photo-1604719312563-8912e9223c6a?auto=format&fit=crop&q=80&w=400",
-      route: "/(family)/services/grocery",
+      route: "/(family)/grocery",
     },
     {
       id: "4",
@@ -465,7 +465,7 @@ export default function FamilyHomeScreen() {
               Priority Alerts
             </Text>
             <TouchableOpacity
-              onPress={() => router.push("/(family)/account/notifications")}
+              onPress={() => router.push("/(family)/account/notifications" as any)}
             >
               <Text className="text-orange-600 text-[10px] font-black uppercase">
                 Recent Activity
@@ -522,7 +522,7 @@ export default function FamilyHomeScreen() {
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push("/(family)/services/grocery");
+                router.push("/(family)/services/grocery" as any);
               }}
               className="bg-white p-6 rounded-[24px] border-2 border-orange-400 shadow-xl shadow-orange-100 flex-row items-center mb-4"
             >
@@ -557,7 +557,7 @@ export default function FamilyHomeScreen() {
             <TouchableOpacity
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                router.push("/(family)/services/pharmacy");
+                router.push("/(family)/services/pharmacy" as any);
               }}
               className="bg-white p-6 rounded-[24px] border-2 border-orange-500 shadow-xl shadow-orange-100 flex-row items-center mb-4"
             >
@@ -654,7 +654,7 @@ export default function FamilyHomeScreen() {
           className="mb-10"
         >
           <TouchableOpacity
-            onPress={() => router.push("/(family)/services/errands")}
+            onPress={() => router.push("/(family)/services/errands" as any)}
             activeOpacity={0.9}
             className="h-44 rounded-[24px] overflow-hidden shadow-2xl shadow-black/20 relative bg-gray-900"
           >
@@ -712,7 +712,7 @@ export default function FamilyHomeScreen() {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => router.push("/(family)/tracking")}
+            onPress={() => router.push("/(family)/tracking" as any)}
             className="bg-gray-50 rounded-[15px] overflow-hidden border border-gray-100 shadow-sm"
           >
             {/* Simulated Map View */}
@@ -788,7 +788,7 @@ export default function FamilyHomeScreen() {
                   <Ionicons name="call" size={18} color="#10B981" />
                 </TouchableOpacity>
                 <TouchableOpacity
-                  onPress={() => router.push("/(family)/tracking")}
+                  onPress={() => router.push("/(family)/tracking" as any)}
                   className="bg-orange-50 w-10 h-10 rounded-xl items-center justify-center border border-orange-100"
                 >
                   <Ionicons name="chevron-forward" size={20} color="#F59E0B" />
@@ -927,7 +927,7 @@ export default function FamilyHomeScreen() {
             <Text className="text-xs font-black text-gray-400 uppercase tracking-widest">
               Quick Orchestrations
             </Text>
-            <TouchableOpacity onPress={() => router.push("/(family)/care")}>
+            <TouchableOpacity onPress={() => router.push("/(family)/care" as any)}>
               <Text className="text-orange-600 text-[10px] font-black uppercase">
                 View All
               </Text>
@@ -991,7 +991,7 @@ export default function FamilyHomeScreen() {
         >
           <TouchableOpacity
             activeOpacity={0.9}
-            onPress={() => router.push("/(family)/account/wallet")}
+            onPress={() => router.push("/(family)/account/wallet" as any)}
             className="overflow-hidden rounded-[15px]"
           >
             <LinearGradient colors={["#1F2937", "#111827"]} className="p-8">
@@ -1035,7 +1035,7 @@ export default function FamilyHomeScreen() {
                   onPress={(e) => {
                     e.stopPropagation();
                     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-                    router.push("/(family)/account/wallet");
+                    router.push("/(family)/account/wallet" as any);
                   }}
                   className="bg-white px-6 py-3 rounded-2xl shadow-lg"
                 >

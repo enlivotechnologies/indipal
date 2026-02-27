@@ -93,7 +93,8 @@ export default function PalProfileScreen() {
             paymentAmount: Number(palData.hourlyRate),
             title: 'Elderly Care Session',
             location: { address: 'Family Home Address' },
-            familyId: user?.id || 'FAM_001'
+            familyId: user?.id || 'FAM_001',
+            type: 'nurse'
         });
 
         setBookingSuccess(true);

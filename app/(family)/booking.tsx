@@ -61,6 +61,7 @@ export default function BookingScreen() {
             date: date,
             day: "Day TBD",
             time: time,
+            type: 'nurse',
         });
 
         // Update Pal Availability

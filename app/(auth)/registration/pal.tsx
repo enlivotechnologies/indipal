@@ -47,8 +47,9 @@ export default function RegisterPal() {
 
         completeProfile({
             ...formData,
+            availability: [], // Initialize with empty array as per User interface
             verificationDocuments: mappedDocs
-        });
+        } as any);
         router.replace('/(pal)/home' as any);
     };
 

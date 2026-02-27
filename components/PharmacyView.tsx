@@ -1,5 +1,5 @@
 import { useAuthStore } from '@/store/authStore';
-import { useGroceryStore } from '@/store/groceryStore';
+import { usePharmacyStore } from '@/store/pharmacyStore';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
@@ -9,17 +9,17 @@ import Animated, { FadeInUp, SlideInRight, SlideOutRight } from 'react-native-re
 
 const { width } = Dimensions.get('window');
 
-interface GroceryViewProps {
+interface PharmacyViewProps {
     role: 'senior' | 'family';
 }
 
-export default function GroceryView({ role }: GroceryViewProps) {
+export default function PharmacyView({ role }: PharmacyViewProps) {
     const router = useRouter();
     const user = useAuthStore(state => state.user);
     const {
         products, cart, addToCart, removeFromCart, updateCartQuantity,
         clearCart, createOrder, orders, forwardToPal
-    } = useGroceryStore();
+    } = usePharmacyStore();
 
     const pendingRequests = useMemo(() => {
         return orders.filter(o => o.status === 'sent_to_family');
@@ -30,11 +30,13 @@ export default function GroceryView({ role }: GroceryViewProps) {
     const [showCart, setShowCart] = useState(false);
     const [reviewingOrder, setReviewingOrder] = useState<any | null>(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [prescriptionUri, setPrescriptionUri] = useState<string | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const themeColor = role === 'senior' ? '#8B5CF6' : '#F97316'; // Purple vs Orange
     const secondaryColor = role === 'senior' ? '#EDE9FE' : '#FFF7ED';
 
-    const categories = ['All', 'Essentials', 'Nutrition', 'Dairy', 'Bakery', 'Fruits', 'Vegetables'];
+    const categories = ['All', 'OTC', 'Supplements', 'Hygiene', 'Devices', 'Antibiotics'];
 
     const filteredProducts = useMemo(() => {
         return products.filter(p => {
@@ -49,7 +51,6 @@ export default function GroceryView({ role }: GroceryViewProps) {
 
     const simulatePayment = async () => {
         return new Promise((resolve, reject) => {
-            // 90% success rate for simulation
             setTimeout(() => {
                 if (Math.random() > 0.1) {
                     resolve(true);
@@ -60,8 +61,27 @@ export default function GroceryView({ role }: GroceryViewProps) {
         });
     };
 
+    const handleUploadPrescription = () => {
+        setIsUploading(true);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        setTimeout(() => {
+            setIsUploading(false);
+            setPrescriptionUri('https://images.unsplash.com/photo-1584017945516-107040a45455?auto=format&fit=crop&q=80&w=600');
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            Alert.alert("Prescription Added", "Your prescription has been securely attached and verified.");
+        }, 1500);
+    };
+
     const handleCheckout = async () => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+        // Mandatory prescription check for certain items
+        const needsRx = cart.some(item => item.requiresPrescription);
+        if (needsRx && !prescriptionUri) {
+            Alert.alert("Prescription Required", "Some items in your cart require a valid prescription. Please upload one before proceeding.");
+            return;
+        }
 
         const seniorId = role === 'senior' ? user?.id || 'SENIOR_1' : 'SENIOR_1';
         const familyId = role === 'family' ? user?.id || 'FAM_1' : 'FAM_1';
@@ -78,11 +98,12 @@ export default function GroceryView({ role }: GroceryViewProps) {
                             setIsProcessing(true);
                             try {
                                 await simulatePayment();
-                                const result = await createOrder(role, seniorId, familyId);
+                                const result = await createOrder(role, seniorId, familyId, prescriptionUri || undefined);
                                 if (result.success) {
                                     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                                     Alert.alert("Success", "Order Booked Successfully! Notification sent to Pals.");
                                     setShowCart(false);
+                                    setPrescriptionUri(null);
                                 }
                             } catch (error: any) {
                                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
@@ -97,12 +118,13 @@ export default function GroceryView({ role }: GroceryViewProps) {
         } else {
             // Senior flow
             setIsProcessing(true);
-            const result = await createOrder(role, seniorId, familyId);
+            const result = await createOrder(role, seniorId, familyId, prescriptionUri || undefined);
             setIsProcessing(false);
             if (result.success) {
                 Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-                Alert.alert("Request Sent", "Your grocery request has been sent to the family for approval.");
+                Alert.alert("Request Sent", "Your pharmacy request has been sent to the family for approval.");
                 setShowCart(false);
+                setPrescriptionUri(null);
             }
         }
     };
@@ -143,7 +165,7 @@ export default function GroceryView({ role }: GroceryViewProps) {
                 <View className="flex-row items-center bg-gray-50 rounded-2xl border border-gray-100 px-4">
                     <Ionicons name="search" size={20} color="#9CA3AF" />
                     <TextInput
-                        placeholder="Search groceries..."
+                        placeholder="Search medicines..."
                         className="flex-1 py-4 ml-3 font-bold text-gray-900"
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -158,7 +180,7 @@ export default function GroceryView({ role }: GroceryViewProps) {
 
             {/* Categories */}
             <View className="mb-6">
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6" contentContainerStyle={{ paddingRight: 40 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="px-6">
                     {categories.map(cat => (
                         <TouchableOpacity
                             key={cat}
@@ -174,6 +196,7 @@ export default function GroceryView({ role }: GroceryViewProps) {
                             </Text>
                         </TouchableOpacity>
                     ))}
+                    <View className="w-12" />
                 </ScrollView>
             </View>
 
@@ -195,7 +218,7 @@ export default function GroceryView({ role }: GroceryViewProps) {
                                         className="bg-orange-50 p-6 rounded-[32px] border border-orange-100 flex-row items-center mb-4"
                                     >
                                         <View className="w-12 h-12 bg-white rounded-2xl items-center justify-center shadow-sm">
-                                            <Ionicons name="cart" size={24} color="#F97316" />
+                                            <Ionicons name="medkit" size={24} color="#F97316" />
                                         </View>
                                         <View className="flex-1 ml-4 pr-4">
                                             <Text className="text-gray-900 font-bold text-sm">Review {order.seniorName}&apos;s List</Text>
@@ -223,9 +246,13 @@ export default function GroceryView({ role }: GroceryViewProps) {
                                 <View className="p-4">
                                     <View className="flex-row justify-between items-start mb-1">
                                         <Text className="text-gray-900 font-black text-sm flex-1 mr-2" numberOfLines={1}>{item.name}</Text>
-                                        <Text className="text-gray-400 text-[8px] font-bold uppercase">{item.unit}</Text>
+                                        {item.requiresPrescription && (
+                                            <View className="bg-red-50 px-2 py-0.5 rounded-md">
+                                                <Text className="text-red-500 text-[6px] font-black uppercase">Rx</Text>
+                                            </View>
+                                        )}
                                     </View>
-                                    <Text className="text-gray-500 font-bold text-[10px] mb-4">₹{item.price}</Text>
+                                    <Text className="text-gray-500 font-bold text-[10px] mb-4">₹{item.price} • {item.unit}</Text>
 
                                     {inCartItem ? (
                                         <View className="flex-row items-center justify-between bg-gray-50 rounded-2xl p-1">
@@ -264,32 +291,10 @@ export default function GroceryView({ role }: GroceryViewProps) {
                 ListEmptyComponent={() => (
                     <View className="items-center justify-center py-20">
                         <Ionicons name="search-outline" size={60} color="#E5E7EB" />
-                        <Text className="text-gray-400 font-bold mt-4">No products found</Text>
+                        <Text className="text-gray-400 font-bold mt-4">No medicines found</Text>
                     </View>
                 )}
             />
-
-            {/* Cart Bar */}
-            {totalInCart > 0 && (
-                <View className="absolute bottom-8 left-6 right-6">
-                    <TouchableOpacity
-                        onPress={() => setShowCart(true)}
-                        style={{ backgroundColor: themeColor }}
-                        className="flex-row items-center justify-between h-20 rounded-[30px] px-8 shadow-2xl shadow-gray-300"
-                    >
-                        <View className="flex-row items-center">
-                            <View className="w-10 h-10 bg-white/20 rounded-xl items-center justify-center">
-                                <Text className="text-white font-black text-sm">{totalInCart}</Text>
-                            </View>
-                            <View className="ml-4">
-                                <Text className="text-white font-black text-[10px] uppercase tracking-widest">View Cart</Text>
-                                <Text className="text-white/80 text-[10px]">₹{cartTotal.toLocaleString()}</Text>
-                            </View>
-                        </View>
-                        <Ionicons name="arrow-forward" size={20} color="white" />
-                    </TouchableOpacity>
-                </View>
-            )}
 
             {/* Review Modal for Family */}
             {reviewingOrder && (
@@ -312,11 +317,33 @@ export default function GroceryView({ role }: GroceryViewProps) {
                                 <View className="bg-orange-50 p-6 rounded-[32px] border border-orange-100">
                                     <Text className="text-orange-600 font-black text-[10px] uppercase tracking-widest mb-1">Requested By</Text>
                                     <Text className="text-gray-900 font-black text-xl">{reviewingOrder.seniorName}</Text>
-                                    <Text className="text-gray-500 text-xs mt-1">Status: Pending Approval</Text>
+                                    <View className="flex-row items-center mt-2">
+                                        <View className="px-3 py-1 bg-white rounded-full border border-orange-100">
+                                            <Text className="text-orange-600 text-[8px] font-black uppercase">Pending Approval</Text>
+                                        </View>
+                                        {reviewingOrder.prescriptionUrl && (
+                                            <View className="px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100 ml-2 flex-row items-center">
+                                                <Ionicons name="checkmark-circle" size={10} color="#10B981" />
+                                                <Text className="text-emerald-600 text-[8px] font-black uppercase ml-1">Rx Attached</Text>
+                                            </View>
+                                        )}
+                                    </View>
                                 </View>
                             </View>
 
                             <ScrollView className="flex-1 px-6">
+                                {reviewingOrder.prescriptionUrl && (
+                                    <View className="mb-8">
+                                        <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Prescription Check</Text>
+                                        <View className="h-48 bg-gray-100 rounded-[32px] overflow-hidden border border-gray-100">
+                                            <Image source={{ uri: reviewingOrder.prescriptionUrl }} className="w-full h-full" resizeMode="cover" />
+                                            <View className="absolute bottom-4 right-4 bg-black/60 px-4 py-2 rounded-xl">
+                                                <Text className="text-white text-[8px] font-black uppercase">View Full</Text>
+                                            </View>
+                                        </View>
+                                    </View>
+                                )}
+
                                 <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Items in this list</Text>
                                 {reviewingOrder.items.map((item: any) => (
                                     <View key={item.id} className="flex-row items-center mb-4 bg-gray-50 p-4 rounded-3xl border border-gray-100">
@@ -357,6 +384,29 @@ export default function GroceryView({ role }: GroceryViewProps) {
                 </View>
             )}
 
+            {/* Cart Bar */}
+            {totalInCart > 0 && (
+                <View className="absolute bottom-8 left-6 right-6">
+                    <TouchableOpacity
+                        onPress={() => setShowCart(true)}
+                        style={{ backgroundColor: themeColor }}
+                        className="flex-row items-center justify-between h-20 rounded-[30px] px-8 shadow-2xl shadow-gray-300"
+                    >
+                        <View className="flex-row items-center">
+                            <View className="w-10 h-10 bg-white/20 rounded-xl items-center justify-center">
+                                <Text className="text-white font-black text-sm">{totalInCart}</Text>
+                            </View>
+                            <View className="ml-4">
+                                <Text className="text-white font-black text-[10px] uppercase tracking-widest">View Prescription & Cart</Text>
+                                <Text className="text-white/80 text-[10px]">₹{cartTotal.toLocaleString()}</Text>
+                            </View>
+                        </View>
+                        <Ionicons name="arrow-forward" size={20} color="white" />
+                    </TouchableOpacity>
+                </View>
+            )}
+
+            {/* Cart Modal */}
             {showCart && (
                 <View className="absolute inset-0 z-50 bg-white">
                     <Animated.View
@@ -369,13 +419,37 @@ export default function GroceryView({ role }: GroceryViewProps) {
                                 <TouchableOpacity onPress={() => setShowCart(false)} className="w-12 h-12 bg-gray-50 rounded-2xl items-center justify-center border border-gray-100">
                                     <Ionicons name="close" size={24} color="#1F2937" />
                                 </TouchableOpacity>
-                                <Text className="text-xl font-black text-gray-900">Your Cart</Text>
+                                <Text className="text-xl font-black text-gray-900">Pharmacy Cart</Text>
                                 <TouchableOpacity onPress={clearCart}>
                                     <Text className="text-red-500 font-black text-[10px] uppercase">Clear</Text>
                                 </TouchableOpacity>
                             </View>
 
                             <ScrollView className="flex-1 px-6">
+                                {/* Prescription Section */}
+                                <View className="mb-8">
+                                    <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Prescription Upload</Text>
+                                    <TouchableOpacity
+                                        onPress={handleUploadPrescription}
+                                        disabled={isUploading}
+                                        className={`p-6 rounded-[32px] border-2 border-dashed flex-row items-center ${prescriptionUri ? 'bg-emerald-50 border-emerald-200' : 'bg-orange-50 border-orange-200'}`}
+                                    >
+                                        <View className={`w-12 h-12 rounded-2xl items-center justify-center ${prescriptionUri ? 'bg-emerald-500' : 'bg-orange-500'}`}>
+                                            {isUploading ? <ActivityIndicator size="small" color="white" /> : <Ionicons name={prescriptionUri ? "checkmark" : "document-attach"} size={24} color="white" />}
+                                        </View>
+                                        <View className="ml-4 flex-1">
+                                            <Text className="text-gray-900 font-black text-sm">{prescriptionUri ? 'Prescription Verified' : 'Upload Valid Rx'}</Text>
+                                            <Text className="text-gray-400 text-[10px] font-bold">Required for restricted medicines</Text>
+                                        </View>
+                                        {prescriptionUri && (
+                                            <TouchableOpacity onPress={() => setPrescriptionUri(null)} className="p-2">
+                                                <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                                            </TouchableOpacity>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+
+                                <Text className="text-xs font-black text-gray-400 uppercase tracking-widest mb-4 ml-1">Items List</Text>
                                 {cart.map(item => (
                                     <View key={item.id} className="flex-row items-center mb-6 bg-gray-50 p-6 rounded-[32px] border border-gray-100">
                                         <Image source={{ uri: item.image }} className="w-20 h-20 rounded-2xl" />
@@ -400,7 +474,7 @@ export default function GroceryView({ role }: GroceryViewProps) {
 
                             <View className="p-8 border-t border-gray-50 bg-white">
                                 <View className="flex-row justify-between items-center mb-8">
-                                    <Text className="text-gray-400 font-black text-[10px] uppercase tracking-widest">Estimated Total</Text>
+                                    <Text className="text-gray-400 font-black text-[10px] uppercase tracking-widest">Order Total</Text>
                                     <Text className="text-gray-900 font-black text-2xl">₹{cartTotal.toLocaleString()}</Text>
                                 </View>
 
@@ -414,12 +488,12 @@ export default function GroceryView({ role }: GroceryViewProps) {
                                         <ActivityIndicator color="white" />
                                     ) : (
                                         <Text className="text-white font-black text-lg uppercase tracking-widest">
-                                            {role === 'senior' ? 'Send to Family' : 'Confirm Order'}
+                                            {role === 'senior' ? 'Request Family' : 'Confirm Order'}
                                         </Text>
                                     )}
                                 </TouchableOpacity>
                                 <Text className="text-center text-gray-400 font-bold text-[10px] mt-4 uppercase tracking-widest">
-                                    {role === 'senior' ? 'Family will review and pay' : 'Payment will be deducted from your wallet'}
+                                    {role === 'senior' ? 'Family will review prescription & pay' : 'Safe & Secure Transaction'}
                                 </Text>
                             </View>
                         </View>

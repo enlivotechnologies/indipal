@@ -22,13 +22,13 @@ export default function SeniorNotificationsScreen() {
     const handleNotificationClick = async (notif: Notification) => {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
         if (!notif.isRead) {
-            await markAsRead(notif.id);
+            await markAsRead(notif.id, 'senior');
         }
 
         router.push({
             pathname: '/(senior)/notification-detail',
             params: { id: notif.id }
-        } as any);
+        });
     };
 
     const getNotificationStyle = (type: string) => {
